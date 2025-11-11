@@ -1,7 +1,7 @@
 export const unitopJSONData = [
   {
     label: "Cartridge Filter",
-    slug: "cartridge-filter",
+    slug: "cartridgefilter",
     region: "NAM",
     packagedSystemFirmProposal: true,
     // icon: cartridge,
@@ -70,7 +70,7 @@ export const unitopJSONData = [
   },
   {
     label: "CIP",
-    slug: "cip",
+    slug: "stripper",
     region: "NAM",
     packagedSystemFirmProposal: true,
     model: [
@@ -540,7 +540,7 @@ export const unitopJSONData = [
   },
   {
     label: "Chemical Feed",
-    slug: "chemical-feed",
+    slug: "chemicalfeed",
     region: "NAM,EMEA",
     packagedSystemFirmProposal: true,
     model: [
@@ -589,7 +589,7 @@ export const unitopJSONData = [
   },
   {
     label: "Distribution Pump",
-    slug: "distribution-pump",
+    slug: "distributionpump",
     region: "NAM",
     packagedSystemFirmProposal: true,
     model: [
@@ -1234,7 +1234,7 @@ export const unitopJSONData = [
   },
   {
     label: "UV Light",
-    slug: "uv-light",
+    slug: "uvlight",
     region: "NAM",
     packagedSystemFirmProposal: true,
     model: [
@@ -1284,7 +1284,7 @@ export const unitopJSONData = [
   },
   {
     label: "PROflex",
-    slug: "proflex-nam",
+    slug: "proflexnam",
     region: "NAM",
     packagedSystemFirmProposal: true,
     model: [
@@ -1390,7 +1390,7 @@ export const unitopJSONData = [
   },
   {
     label: "ZPakR",
-    slug: "z-pak-r",
+    slug: "zpakr",
     region: "NAM",
     packagedSystemFirmProposal: true,
     model: [

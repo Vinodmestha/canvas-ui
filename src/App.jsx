@@ -1,11 +1,43 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 import Sidebar from "./components/layout/sidebar/Sidebar";
 import Home from "./pages/Home";
+import { staticProducts, transformToUnitopConfig } from "./utils/staticProducts";
 
 function App() {
+   const [products, setProducts] = useState(staticProducts);
+  const [unitopConfig, setUnitopConfig] = useState(transformToUnitopConfig(staticProducts));
+  const [loading, setLoading] = useState(false);
+  // Single API call on mount
+  useEffect(() => {
+    const loadProducts = async () => {
+      setLoading(true);
+      try {
+        // TODO: Replace with your actual API endpoint
+        // const response = await fetch('/api/products');
+        // const data = await response.json();
+        
+        // Update both products and config
+        // setProducts(data);
+        // setUnitopConfig(transformToUnitopConfig(data));
+      } catch (error) {
+        console.error('Error loading products:', error);
+        // Fallback to static data
+        setProducts(staticProducts);
+        setUnitopConfig(transformToUnitopConfig(staticProducts));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, []);
+
+  if (loading) {
+    return <div>Loading products...</div>;
+  }
   const data = {
     cpqDomain: "watertechnologiesdev",
     currency: "USD",
@@ -27,11 +59,14 @@ function App() {
       <Header />
       <div className="container">
         <div className="sidebar-wrapper">
-          <Sidebar    clroAccess={false}
-              cpqData={JSON.parse(localStorage.getItem("cpq-data-key"))}/>
+          <Sidebar    
+            clroAccess={false}
+            cpqData={JSON.parse(localStorage.getItem("cpq-data-key"))}
+            products={products}
+          />
         </div>
         <div className="main-wrapper">
-          <Home />
+          <Home UNITOP_CONFIG={unitopConfig}/>
         </div>
       </div>
       {/* <Footer /> */}

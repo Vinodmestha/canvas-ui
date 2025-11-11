@@ -6,13 +6,38 @@ import {
 } from "@mui/material";
 import { Handle } from "reactflow";
 
-function UnitopComponent({id,unitopName,checkUnitopExitsId,node,handleEnter,deleteUnitTop,shouldShowWarning,warningType, image}) {
+// 3. Updated UnitopComponent to use all the props
+function UnitopComponent({
+  id,
+  unitopName,
+  unitopType,
+  checkUnitopExitsId,
+  displayValue,
+  config,
+  node,
+  handleEnter,
+  deleteUnitTop,
+  shouldShowWarning,
+  warningType,
+  warningMessage,
+  image,
+  hoverSource,
+  exithoverSource
+}) {
+  
+  const onMouseEnterNode = (e, nodeId) => {
+    // Your existing logic
+  };
+  
+  const onBluerNode = (e, nodeId) => {
+    // Your existing logic
+  };
+  
   return (
     <div className="custom-node-element">
       <div className="unitop-close-icon-div">
         <IconButton
-          aria-label="new"
-          // Replaced onClick instand of OnMouseDown in version 11 @sudarsana
+          aria-label="delete"
           onClick={(e) => deleteUnitTop(e, node)}
           size="small"
           className="unitop-close-icon"
@@ -20,11 +45,13 @@ function UnitopComponent({id,unitopName,checkUnitopExitsId,node,handleEnter,dele
           X
         </IconButton>
       </div>
+      
       <div
         id="unitop_anuj"
         style={{ marginTop: "-5px", height: "50px" }}
         className={`Node_${id}`}
       >
+        {/* Warning message display */}
         {shouldShowWarning && (
           <p
             style={{
@@ -37,18 +64,13 @@ function UnitopComponent({id,unitopName,checkUnitopExitsId,node,handleEnter,dele
             }}
           >
             {warningMessage}
-            {warningType === "error" && maxCapacity && requiredOutput && (
-              <span style={{ display: "block", fontSize: "7px" }}>
-                {/* (Req: {requiredOutput.toFixed(0)} | Max:{" "} */}
-                {/* {maxCapacity.toFixed(0)}) */}
-              </span>
-            )}
           </p>
         )}
+        
+        {/* Unit operation label/name input */}
         <div
-          className={`${id} unitop-label `}
+          className={`${id} unitop-label`}
           style={{
-            //  display: "none",
             width: "-webkit-fill-available",
           }}
           id="tooltip"
@@ -58,32 +80,25 @@ function UnitopComponent({id,unitopName,checkUnitopExitsId,node,handleEnter,dele
               className="nodrag"
               type="text"
               id={`anujText${id}`}
-              key={unitopName}
+              key={displayValue}
               style={{
                 marginTop: "-10px",
-                // width: "-webkit-fill-available",
                 height: 10,
                 fontSize: 9,
                 border: "none",
                 textAlign: "center",
               }}
               autoComplete="off"
-              onFocus={(e) => {
-                onMouseEnterNode(e, id);
-              }}
-              onBlur={(e) => {
-                onBluerNode(e, id);
-              }}
+              onFocus={(e) => onMouseEnterNode(e, id)}
+              onBlur={(e) => onBluerNode(e, id)}
               placeholder={
                 localStorage.getItem(id)
                   ? null
-                  : localStorage.setItem(id, `CF_${checkUnitopExitsId}`)
+                  : localStorage.setItem(id, displayValue)
               }
               onChange={(e) => {
-                // setAnujName(e.target.value);
                 localStorage.setItem(id, e.target.value);
                 localStorage.setItem("globalExitBtn", "true");
-                // setChecked(false);
               }}
               onKeyDown={handleEnter}
               onMouseOver={(e) => {
@@ -96,25 +111,26 @@ function UnitopComponent({id,unitopName,checkUnitopExitsId,node,handleEnter,dele
             />
           </Tooltip>
         </div>
+        
+        {/* Unit operation image */}
         <div className="nodeimg" id={id}>
           <input
             className="nodrag"
             type="image"
             src={image}
+            alt={unitopName}
             width="48"
             height="36"
             style={{ zIndex: "-9", position: "relative" }}
           />
         </div>
       </div>
+      
+      {/* Inlet handle */}
       <Tooltip
         title="Inlet"
-        onMouseOver={(e) => {
-          hoverSource(e);
-        }}
-        onMouseLeave={(e) => {
-          exithoverSource(e);
-        }}
+        onMouseOver={(e) => hoverSource(e)}
+        onMouseLeave={(e) => exithoverSource(e)}
       >
         <Handle
           id="a"
@@ -123,14 +139,12 @@ function UnitopComponent({id,unitopName,checkUnitopExitsId,node,handleEnter,dele
           style={{ background: "green" }}
         />
       </Tooltip>
+      
+      {/* Outlet handle */}
       <Tooltip
         title="Outlet"
-        onMouseOver={(e) => {
-          hoverSource(e);
-        }}
-        onMouseLeave={(e) => {
-          exithoverSource(e);
-        }}
+        onMouseOver={(e) => hoverSource(e)}
+        onMouseLeave={(e) => exithoverSource(e)}
       >
         <Handle
           id="c"
