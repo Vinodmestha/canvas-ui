@@ -1,0 +1,165 @@
+@font-face {
+  src: url(fonts/FS-Sinclair-Regular.ttf);
+  font-family: "fs sinclair";
+}
+
+#root {
+  max-width: 1280px;
+  /* margin: 0 auto;
+  padding: 2rem;
+  text-align: center; */
+}
+.container{
+  display: flex;
+}
+.sidebar-wrapper{
+  /* width: 200px; */
+  /* background-color: #ddd; */
+  /* height: 100vh; */
+}
+.main-wrapper{
+  width: 100%;
+}
+
+.App {
+  /* text-align: center; */
+  font-family: "sans W7Bld", "sans W6SeBld", "sans W4SeLig", "fs rufusReg",
+    "fs rufusBld", "fs sinclair";
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wrapper {
+  padding: 5px 20px;
+}
+
+.wrapper fieldset {
+  margin: 20px 0;
+}
+
+.ReactModalPortal {
+  position: absolute;
+  z-index: 99;
+}
+
+button {
+  text-transform: none !important;
+  /* font-family: 'fs sinclair' !important; */
+  font-family: "sans W4SeLig";
+}
+
+label,
+li,
+span,
+input,
+.MuiSelect-select {
+  /* font-family: 'fs sinclair' !important; */
+  font-family: "arial";
+}
+
+.react-flow__controls {
+  /* left: 97% !important; */
+  /* bottom: 10% !important; */
+  box-shadow: none !important;
+  right: 15px !important;
+  bottom: 3px !important;
+  left: unset !important;
+}
+
+/* .MuiTableCell-root .MuiTableCell-body .MuiTableCell-paddingNone{
+  width: 200px
+} */
+
+:root {
+  --FontFamilyHeadings: "arial";
+  --FontSizeHL: 24px;
+}
+
+.btn-auto-width {
+  min-width: 120px !important;
+  width: auto !important;
+  max-width: max-content !important;
+}
+
+.loader-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.loader-container {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.loader {
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #3498db;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 2s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Added CSS for better rendering (in your stylesheet): image screenshot capture */
+.react-flow__pane {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+h5{
+  margin: 0;
+}

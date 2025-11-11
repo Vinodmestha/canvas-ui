@@ -1,0 +1,124 @@
+.notification-modal {
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+}
+.init_notification {
+  position: fixed;
+  z-index: 999999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0, 0, 0); /* Fallback color */
+  background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+}
+.notification-modal-container {
+  position: fixed;
+  background: #ffffff;
+  max-width: 446px;
+  width: 100%;
+  height: 204px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 8px;
+  border: 1px solid var(--Forground-Borders-Light);
+  box-shadow: 0px 8px 24px 0px rgba(9, 8, 22, 0.15);
+  // border: 1px solid #D5D5D5;
+  -webkit-transform: translate(-50%, -50%);
+  -moz-transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  -o-transform: translate(-50%, -50%);
+}
+.notification-modal-header {
+  background: #f2f2f2 0% 0% no-repeat padding-box;
+  color: #2c2c2c;
+  height: 38px;
+  border-radius: 8px 8px 0px 0px;
+  opacity: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 3% 0 4%;
+  justify-content: space-between;
+  border-bottom: 1px solid #0000001f;
+  font-size: 16px;
+}
+.notification-close-text {
+  svg {
+    font-size: 20px;
+    color: #2c2c2c;
+  }
+}
+.warning {
+  height: 110px !important;
+}
+.success-icon {
+  width: 60px !important;
+}
+.notification-modal-content {
+  background: #ffffff;
+  height: 145px;
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  img {
+    width: 48px;
+  }
+}
+.border-bottom {
+  border-bottom: 1px solid var(--Forground-Borders-Light);
+}
+.notification-modal-content-item {
+  justify-content: center;
+  display: flex;
+  margin: 0px;
+  padding: 8px 6px 8px 6px;
+  font-size: 16px;
+  color: #333333;
+  // font-weight: 600;
+  // text-transform: capitalize;
+  font-family: "arial" !important;
+  text-align: center;
+}
+.display-block {
+  display: block;
+}
+.display-none {
+  display: none;
+}
+.notification-modal-footer {
+  // float: right;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin: 10px;
+  // margin-right: 6%;
+  .cancel-btn {
+    background: var(--Secondary-Default);
+    color: var(--Primary-Default);
+    margin: 0px 10px 0px 0px !important;
+    width: 124px !important;
+    height: 32px;
+    border-radius: 4px;
+    font-family: "sans W4SeLig";
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .ok-btn {
+    background: var(--Primary-Default);
+    color: var(--Forground-Text-Primary-Inverse);
+    margin: 0px 10px 0px 10px !important;
+    width: 124px !important;
+    height: 32px;
+    border-radius: 4px;
+    font-family: "sans W4SeLig";
+    font-size: 16px;
+  }
+}

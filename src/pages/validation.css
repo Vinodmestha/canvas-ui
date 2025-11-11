@@ -1,0 +1,109 @@
+.validationflow .react-flow__node {
+  width: auto;
+  height: auto;
+  border-radius: 5px;
+  padding: 7px;
+  color: #555;
+  /* border: 1px solid #ddd; */
+  text-align: center;
+  font-size: 12px;
+
+  --angle: 0deg;
+  border: 2px dashed transparent !important;
+  animation: 4s rotate linear infinite;
+  background: linear-gradient(white, white) padding-box,
+    linear-gradient(to right, #ddd, #ddd) border-box !important;
+  border-image: linear-gradient(var(--angle), red, red, red, #00aec7, #d3d3d3) 1 !important;
+}
+
+@keyframes rotate {
+  to {
+    --angle: 360deg;
+  }
+}
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.validationflow .react-flow__node-customnode_product {
+  border: 1px solid #ddd !important;
+  background: #ddd padding-box, #ddd border-box !important;
+}
+.validationflow .react-flow__node-customnode_wasteout {
+  border: 1px solid #ddd !important;
+  background: #ddd padding-box, #ddd border-box !important;
+}
+
+.validationflow .react-flow__node-customnode {
+  background: #e6e6e9;
+  border: 1px solid #ddd;
+}
+
+.react-flow__node-custominput .react-flow__handle {
+  background: #e6e6e9;
+}
+
+.validationflow .react-flow__node-custominput {
+  background: #fff;
+}
+
+.validationflow .react-flow__handle-connecting {
+  background: #ff6060;
+}
+
+.validationflow .react-flow__handle-valid {
+  background: #55dd99;
+}
+/* CSS for vesrion 11 */
+.validationflow .react-flow__node-customnode_RO_HP_group {
+  background: none !important;
+  z-index: 0 !important;
+  border: 1px solid #efe2e2 !important;
+}
+.validationflow .react-flow__node-customnode_rectangle {
+  border-image: none !important;
+  background: none !important;
+  z-index: 0 !important;
+}
+.validationflow .react-flow__node-customnode_pump_hp,
+.validationflow .react-flow__node-customnode_ROpump,
+.validationflow .react-flow__node-customnode_Pelton_Wheel,
+.validationflow .react-flow__node-customnode_Turbo_Charger,
+.validationflow .react-flow__node-customnode_WEX_PEX,
+.validationflow .react-flow__node-customnode_mixsplit,
+.validationflow .react-flow__node-customnode_CLROpump,
+.validationflow .react-flow__node-customnode_boosterPump {
+  z-index: 5 !important;
+}
+/* @sudarsana Bug fixed for Stream connections should not hide icons code changes Start */
+.react-flow .react-flow__edges {
+  z-index: 4 !important;
+}
+.react-flow__nodes {
+  z-index: auto !important;
+}
+.react-flow__attribution a {
+  display: none;
+}
+.validationflow .react-flow__node-customnode_boosterPump {
+  border-image: none !important;
+}
+/* @sudarsana Bug fixed Stream connections should not hide icons code changes  End*/
+.react-flow__edge-path {
+  stroke: lightblue !important;
+  stroke-width: 2 !important;
+  fill: none !important;
+}
+.react-flow__panel {
+  margin: 0 !important;
+}
+/* @sudarsana incresed the height for removal of unitop name */
+/* .validationflow .react-flow__node-customnode_product {
+  height: 54px !important;
+}
+.validationflow .react-flow__node-customnode_feed {
+  height: 52px !important;
+} */

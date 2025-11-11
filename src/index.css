@@ -1,0 +1,552 @@
+/* @import "../node_modules/@veolia.com/vds-react-components/assets/fonts/fonts.css";
+@import "../node_modules/@veolia.com/vds-react-components/assets/core.css";
+@import "../node_modules/@veolia.com/vds-react-components/assets/components.css";
+/* Import default theme */
+/* @import "../node_modules/@veolia.com/vds-react-components/assets/themes/default.css"; */
+
+/* @font-face {
+  src: url(fonts/FS-Sinclair-Regular.ttf);
+  font-family: "fs sinclair" !important;
+}
+
+@font-face {
+  font-family: "fs rufusReg";
+  src: url(./fonts/FS-Rufus-Regular.otf) format("opentype");
+}
+
+@font-face {
+  font-family: "fs rufusBld";
+  src: url(./fonts/FS-Rufus-Bold.otf) format("opentype");
+}
+
+@font-face {
+  font-family: "sans W4SeLig";
+  src: url(./fonts/TheSansVeolia-W4SeLig.otf) format("opentype");
+}
+
+@font-face {
+  font-family: "sans W6SeBld";
+  src: url(./fonts/TheSansVeolia-W6SeBld.otf) format("opentype");
+}
+
+@font-face {
+  font-family: "sans W7Bld";
+  src: url(./fonts/TheSansVeolia-W7Bld.otf) format("opentype");
+}  */
+
+html,
+body {
+  min-height: 100%;
+  padding: 0;
+  margin: 0;
+  font-family: "fs sinclair" !important;
+}
+
+/* @font-face { font-family: 'helvetica neue'; src: local('Arial'); } */
+body {
+  margin: 0;
+  /* font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif; */
+  font-family: "fs sinclair" !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.rufusReg {
+  font-family: "arial" !important;
+}
+
+.rufusReg li {
+  font-family: "arial" !important;
+}
+
+.rufusReg span {
+  font-family: "arial" !important;
+}
+
+.rufusBld {
+  font-family: "arial" !important;
+}
+
+.sansW4SeLig {
+  font-family: "arial" !important;
+}
+
+.sansW4SeLig span {
+  font-family: "arial";
+}
+
+.sansW4SeLig li {
+  font-family: "arial";
+}
+
+.sansW4SeLig input {
+  font-family: "arial";
+}
+
+.sansW6SeBld {
+  font-family: "arial";
+}
+
+.sansW6SeBld span {
+  font-family: "arial";
+}
+
+.sansW7Bld {
+  font-family: "arial";
+}
+
+.sansW7Bld span {
+  font-family: "arial";
+}
+
+.f14 {
+  font-size: 14px !important;
+}
+
+.mx-100 {
+  max-width: 100% !important;
+}
+
+.mxflex-100 {
+  max-width: 100% !important;
+  flex-basis: 100% !important;
+}
+
+code {
+  font-family: "fs sinclair" !important;
+}
+
+.header {
+  /* margin-top:-50px; */
+}
+
+.header header {
+  height: 50px;
+  display: flex;
+  width: 100%;
+  flex-shrink: 0;
+  position: static;
+  background-color: #fff;
+  color: #2c2c2c;
+}
+
+.container {
+  background-color: #fff;
+}
+
+.footer {
+  background: #fff;
+  /* height: 20px; */
+  font-family: "arial" !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.body-content {
+  min-height: calc(100vh - 85px) !important;
+  flex: 1;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.MuiBox-root {
+  background-color: linear-gradient(white, silver);
+}
+
+.MuiPaper-root {
+  padding: 0;
+}
+
+.dndflow {
+  overflow: auto;
+}
+
+.dndnode:hover .tooltiptext_feed {
+  visibility: visible;
+}
+
+/* .input .tooltiptext_feed {
+ */
+
+.dndnode .tooltiptext_feed {
+  visibility: hidden;
+  width: 50px;
+  background-color: #0000007d;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  margin-top: 70px;
+  font-size: 10px;
+  position: absolute;
+  z-index: 1;
+}
+
+.dndnode:hover .tooltiptext_edi {
+  visibility: visible;
+}
+
+.dndnode .tooltiptext_edi {
+  visibility: hidden;
+  width: 50px;
+  background-color: #0000007d;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  margin-top: 70px;
+  font-size: 10px;
+  position: absolute;
+  z-index: 1;
+}
+
+.output:hover .tooltiptext_ro {
+  visibility: visible;
+}
+
+.dndnode:hover .tooltiptext_ro {
+  visibility: visible;
+}
+
+.dndnode .tooltiptext_ro {
+  visibility: hidden;
+  width: 50px;
+  background-color: #0000007d;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  margin-top: 70px;
+  font-size: 10px;
+  position: absolute;
+  z-index: 1;
+}
+
+.dl {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: red;
+  display: inline-block;
+  color: #fff;
+  border-radius: 5px;
+  padding: 1px 2px 2px 2px;
+  cursor: pointer;
+  vertical-align: top;
+  margin: -3px -5px 0 0;
+  font-size: 10px;
+  line-height: 7px;
+  visibility: visible;
+  position: absolute;
+  z-index: 1;
+}
+
+.dl:hover {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: red;
+  display: inline-block;
+  color: #fff;
+  border-radius: 12px;
+  padding: 2px 4px 4px 4px;
+  cursor: pointer;
+  vertical-align: top;
+  margin: -4px -6px 0 0;
+  font-size: 12px;
+  line-height: 9px;
+  visibility: visible;
+}
+
+.dndnode:hover .tooltiptext_product {
+  visibility: visible;
+}
+
+.dndnode .tooltiptext_product {
+  visibility: hidden;
+  width: 50px;
+  background-color: #0000007d;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  margin-top: 70px;
+  font-size: 10px;
+  position: absolute;
+  z-index: 1;
+}
+
+#CloseIcon:hover {
+  background: lightgray;
+}
+
+#saveDialog,
+#openDialog {
+  height: 200px;
+  width: 500px;
+  background: lightblue;
+  border-radius: 8px;
+  margin-left: 20%;
+}
+
+#openDialog.open-dialog {
+  margin-left: unset;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+  position: absolute;
+  border: 1px solid rgb(204, 204, 204);
+  background: rgb(255, 255, 255);
+  overflow: auto;
+  border-radius: 4px;
+  min-height: 150px;
+  max-height: 300px;
+}
+
+.content-open-file .MuiAutocomplete-root {
+  margin-top: 10px;
+}
+
+.edgeColor:hover {
+  stroke: linear-gradient(45deg, lightblue, white);
+}
+
+#CloseIcon:hover {
+  background: lightgray;
+}
+
+#saveDialog,
+#openDialog {
+  height: 200px;
+  width: 500px;
+  background: lightblue;
+  border-radius: 8px;
+  margin-left: 20%;
+}
+
+.edgeColor:hover {
+  stroke: linear-gradient(45deg, lightblue, white);
+  stroke-width: 8 !important;
+}
+
+.edgeColor {
+  z-index: 99;
+}
+
+.ReactModal__Overlay ::-webkit-scrollbar-thumb {
+  border: 1px solid white;
+  border-radius: 4px;
+  /* background: -webkit-linear-gradient(top, #25b7c4, #68b896); */
+  /* background: linear-gradient(to bottom, #25b7c4, #68b896); */
+}
+
+.ReactModal__Overlay ::-webkit-scrollbar {
+  -webkit-appearance: none;
+  background: transparent;
+  width: 6px;
+}
+
+body ::-webkit-scrollbar-thumb,
+html ::-webkit-scrollbar-thumb {
+  border: 1px solid white;
+  border-radius: 4px;
+  background: var(--Forground-Text-Secondary);
+  /* background: #B2E7EE; */
+}
+
+body ::-webkit-scrollbar,
+html ::-webkit-scrollbar {
+  -webkit-appearance: none;
+  background: #fff;
+  width: 6px;
+  height: 6px;
+}
+
+body .cf-box.react-draggable ::-webkit-scrollbar,
+html .cf-box.react-draggable ::-webkit-scrollbar {
+  -webkit-appearance: none;
+  background: #fff;
+  width: 10px;
+  height: 10px;
+}
+
+#loaderImg {
+  position: fixed;
+  opacity: 0.8;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  background: url(../src/images/fileIcon/loader2.gif) center center no-repeat;
+}
+
+#overlay {
+  position: fixed;
+  /* Sit on top of the page content */
+  display: none;
+  /* Hidden by default */
+  width: 100%;
+  /* Full width (cover the whole page) */
+  height: 100%;
+  /* Full height (cover the whole page) */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  /* Black background with opacity */
+  z-index: 1000;
+  /* Specify a stack order in case you're using a different order for other elements */
+  cursor: pointer;
+  /* Add a pointer on hover */
+}
+
+.pleaseWaitText {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  vertical-align: middle;
+  right: 0;
+  bottom: -123px;
+  margin: auto;
+  color: #fff;
+  font-size: 14px;
+  padding-left: 15px;
+  font-family: "sans W4SeLig" !important;
+}
+
+#tooltip {
+  position: relative;
+  display: inline-block;
+  font-family: "sans W4SeLig" !important;
+}
+
+#tooltip .tooltiptext {
+  visibility: hidden;
+  position: absolute;
+  width: 120px;
+  top: -27px;
+  left: -17px;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  background-color: #0062a9;
+  color: white;
+  opacity: 1;
+  z-index: 1;
+  padding: 4px 0;
+  border-radius: 4px;
+}
+
+#tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+
+#loaderImg {
+  position: fixed;
+  opacity: 0.8;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  background: url(../src/images/fileIcon/loader2.gif) center center no-repeat;
+}
+
+#overlay {
+  position: fixed;
+  /* Sit on top of the page content */
+  display: none;
+  /* Hidden by default */
+  width: 100%;
+  /* Full width (cover the whole page) */
+  height: 100%;
+  /* Full height (cover the whole page) */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  /* Black background with opacity */
+  z-index: 1000;
+  /* Specify a stack order in case you're using a different order for other elements */
+  cursor: pointer;
+  /* Add a pointer on hover */
+}
+
+/* Remove Draggable on units measuring for all forms */
+.no-drag-units {
+  display: inline-block;
+  text-align: right;
+  margin-left: 1%;
+}
+
+:focus-visible {
+  outline: none;
+}
+
+.justify-content {
+  display: flex;
+  align-items: center;
+}
+
+.mt-15 {
+  margin-top: 15px !important;
+}
+
+.input-sineup {
+  width: 100%;
+  border-radius: 50px;
+  border: 1px solid #0000004a;
+  padding: 0 10px;
+  box-sizing: border-box;
+  height: 32px !important;
+}
+
+.submit-button#submit {
+  padding: 0px;
+  width: 200px !important;
+  border-radius: 50px !important;
+  height: 35px !important;
+}
+
+.error-input {
+  border-color: red;
+}
+
+input[type="checkbox"]#policy_accepted {
+  width: 1em;
+  height: 1em;
+}
+
+input[type="checkbox"]#policy_accepted.error-input {
+  outline: 2px solid red;
+}
+
+input[type="radio"],
+input[type="checkbox"] {
+  accent-color: #002d62;
+}
+
+/* veolia css */
+.veolia-button.tertiary {
+  /* color: var(--components-button-tertiary-button-tertiary-foreground-default); */
+  color: #fff;
+  background-color: #002d62;
+  border-color: transparent;
+  /* align-items: baseline; */
+}
+
+.veolia-button.tertiary:focus,
+.veolia-button.tertiary:hover {
+  /* color: var(--components-button-tertiary-button-tertiary-foreground-hover); */
+  color: #fff;
+  background-color: #0679cc;
+  /* border-color: var(--components-button-tertiary-button-tertiary-background-default); */
+}
+
+.sign-up-mainpage .fymEUH.veolia-divider {
+  /* padding: 0px 22px !important; */
+}
