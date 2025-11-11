@@ -55,6 +55,7 @@ import {
   // newIconColor,
 } from "../../assets/images";
 import NotificationModal from "../../components/common/modal";
+import UnitopComponent from "../../components/common/unitop/UnitopComponent";
 // import { useTranslation } from "react-i18next";
 const unitopsNames = {
   CF: "Cartridge Filter",
@@ -65,7 +66,7 @@ const unitopsNames = {
   PROFLEX: "PROflex",
 };
 const unitopsErrorLabel = {
-  anuj: "Cartridge Filter",
+  cartridgefilter: "Cartridge Filter",
   stripper: "CIP",
   chemicaldosing: "Chemical Feed",
   dpump: "Distribution Pump",
@@ -542,7 +543,7 @@ function Home() {
       if (
         oldEdge.targetHandle != "a_bp" &&
         oldEdge.targetHandle != "a_w" &&
-        oldEdge.targetHandle != "c_w" 
+        oldEdge.targetHandle != "c_w"
       ) {
         setEdges((edges) => {
           const updatedEdges = edges.map((item) => {
@@ -739,74 +740,7 @@ function Home() {
         y: event.clientY - reactFlowBounds.top - 20,
       });
       console.log(type);
-      if (type == "customnode_chemical_dosing") {
-        if (c_chemical_dosing.length > 0) {
-          c_chemical_dosing.sort((a, b) => a - b);
-          id_chemical_dosing = 1;
-          for (let i = 0; i < c_chemical_dosing.length; i++) {
-            if (id_chemical_dosing === c_chemical_dosing[i]) {
-              id_chemical_dosing++;
-            } else {
-              break;
-            }
-          }
-        } else {
-          id_chemical_dosing = 1;
-        }
-
-        while (localStorage.getItem(`chemicaldosing_${id_chemical_dosing}`)) {
-          id_chemical_dosing++;
-        }
-
-        localStorage.setItem(
-          `chemicaldosing_${id_chemical_dosing}`,
-          `Dose_${id_chemical_dosing}`
-        );
-        c_chemical_dosing.push(id_chemical_dosing);
-
-        const newNode0 = {
-          id: `chemicaldosing_${id_chemical_dosing}`,
-          type,
-          position,
-          style: { width: "auto", height: "auto", zIndex: 5 },
-          data: { label: "node 2" },
-        };
-
-        node1.push(newNode0);
-        setElements((es) => es.concat(newNode0));
-      } else if (type === "customnode_stripper") {
-        if (c_stripper.length > 0) {
-          c_stripper.sort((a, b) => a - b);
-          id_stripper = 1;
-          for (let i = 0; i < c_stripper.length; i++) {
-            if (id_stripper === c_stripper[i]) {
-              id_stripper++;
-            } else {
-              break;
-            }
-          }
-        } else {
-          id_stripper = 1;
-        }
-
-        while (localStorage.getItem(`stripper_${id_stripper}`)) {
-          id_stripper++;
-        }
-
-        localStorage.setItem(`stripper_${id_stripper}`, `STR_${id_stripper}`);
-        c_stripper.push(id_stripper);
-
-        const newNode0 = {
-          id: `stripper_${id_stripper}`,
-          type,
-          position,
-          style: { width: "auto", height: "auto", zIndex: 5 },
-          data: { label: "node 2" },
-        };
-
-        node1.push(newNode0);
-        setElements((es) => es.concat(newNode0));
-      } else if (type === "customnode_anuj") {
+    //  if (type === "customnode_cartridgefilter") {
         console.log(type);
         if (c_anuj.length > 0) {
           c_anuj.sort((a, b) => a - b);
@@ -822,15 +756,15 @@ function Home() {
           id_anuj = 1;
         }
 
-        while (localStorage.getItem(`anuj_${id_anuj}`)) {
+        while (localStorage.getItem(`cartridgefilter_${id_anuj}`)) {
           id_anuj++;
         }
 
-        localStorage.setItem(`anuj_${id_anuj}`, `CF_${id_anuj}`);
+        localStorage.setItem(`cartridgefilter_${id_anuj}`, `CF_${id_anuj}`);
         c_anuj.push(id_anuj);
 
         const newNode0 = {
-          id: `anuj_${id_anuj}`,
+          id: `cartridgefilter_${id_anuj}`,
           type,
           position,
           style: { width: "auto", height: "auto", zIndex: 5 },
@@ -839,135 +773,39 @@ function Home() {
         console.log(c_anuj, newNode0);
         node1.push(newNode0);
         setElements((es) => es.concat(newNode0));
-      } else if (type === "customnode_uvlight") {
-        if (c_uvlight.length > 0) {
-          c_uvlight.sort((a, b) => a - b);
-          id_uvlight = 1;
-          for (let i = 0; i < c_uvlight.length; i++) {
-            if (id_uvlight === c_uvlight[i]) {
-              id_uvlight++;
-            } else {
-              break;
-            }
-          }
-        } else {
-          id_uvlight = 1;
-        }
+      // }else if (type === "customnode_dpump") {
+      //   if (c_dpump.length > 0) {
+      //     c_dpump.sort((a, b) => a - b);
+      //     id_dpump = 1;
+      //     for (let i = 0; i < c_dpump.length; i++) {
+      //       if (id_dpump === c_dpump[i]) {
+      //         id_dpump++;
+      //       } else {
+      //         break;
+      //       }
+      //     }
+      //   } else {
+      //     id_dpump = 1;
+      //   }
 
-        while (localStorage.getItem(`uvlight_${id_uvlight}`)) {
-          id_uvlight++;
-        }
+      //   while (localStorage.getItem(`dpump_${id_dpump}`)) {
+      //     id_dpump++;
+      //   }
 
-        localStorage.setItem(`uvlight_${id_uvlight}`, `UV_${id_uvlight}`);
-        c_uvlight.push(id_uvlight);
+      //   localStorage.setItem(`dpump_${id_dpump}`, `DPUMP_${id_dpump}`);
+      //   c_dpump.push(id_dpump);
 
-        const newNode0 = {
-          id: `uvlight_${id_uvlight}`,
-          type,
-          position,
-          style: { width: "auto", height: "auto", zIndex: 5 },
-          data: { label: "node 2" },
-        };
+      //   const newNode0 = {
+      //     id: `dpump_${id_dpump}`,
+      //     type,
+      //     position,
+      //     style: { width: "auto", height: "auto", zIndex: 5 },
+      //     data: { label: "node 2" },
+      //   };
 
-        node1.push(newNode0);
-        setElements((es) => es.concat(newNode0));
-      } else if (type === "customnode_dpump") {
-        if (c_dpump.length > 0) {
-          c_dpump.sort((a, b) => a - b);
-          id_dpump = 1;
-          for (let i = 0; i < c_dpump.length; i++) {
-            if (id_dpump === c_dpump[i]) {
-              id_dpump++;
-            } else {
-              break;
-            }
-          }
-        } else {
-          id_dpump = 1;
-        }
-
-        while (localStorage.getItem(`dpump_${id_dpump}`)) {
-          id_dpump++;
-        }
-
-        localStorage.setItem(`dpump_${id_dpump}`, `DPUMP_${id_dpump}`);
-        c_dpump.push(id_dpump);
-
-        const newNode0 = {
-          id: `dpump_${id_dpump}`,
-          type,
-          position,
-          style: { width: "auto", height: "auto", zIndex: 5 },
-          data: { label: "node 2" },
-        };
-
-        node1.push(newNode0);
-        setElements((es) => es.concat(newNode0));
-      } else if (type === "customnode_proflex") {
-        if (c_proflex.length > 0) {
-          c_proflex.sort((a, b) => a - b);
-          id_proflex = 1;
-          for (let i = 0; i < c_proflex.length; i++) {
-            if (id_proflex === c_proflex[i]) {
-              id_proflex++;
-            } else {
-              break;
-            }
-          }
-        } else {
-          id_proflex = 1;
-        }
-
-        while (localStorage.getItem(`proflex_${id_proflex}`)) {
-          id_proflex++;
-        }
-
-        localStorage.setItem(`proflex_${id_proflex}`, `PROFLEX_${id_proflex}`);
-        c_proflex.push(id_proflex);
-
-        const newNode0 = {
-          id: `proflex_${id_proflex}`,
-          type,
-          position,
-          style: { width: "auto", height: "auto", zIndex: 5 },
-          data: { label: "node 2" },
-        };
-
-        node1.push(newNode0);
-        setElements((es) => es.concat(newNode0));
-      } else if (type === "customnode_zpak") {
-        if (c_zpak.length > 0) {
-          c_zpak.sort((a, b) => a - b);
-          id_zpak = 1;
-          for (let i = 0; i < c_zpak.length; i++) {
-            if (id_zpak === c_zpak[i]) {
-              id_zpak++;
-            } else {
-              break;
-            }
-          }
-        } else {
-          id_zpak = 1;
-        }
-
-        while (localStorage.getItem(`zpak_${id_zpak}`)) {
-          id_zpak++;
-        }
-
-        localStorage.setItem(`zpak_${id_zpak}`, `ZPAK_${id_zpak}`);
-        c_zpak.push(id_zpak);
-
-        const newNode0 = {
-          id: `zpak_${id_zpak}`,
-          type,
-          position,
-          style: { width: "auto", height: "auto", zIndex: 5 },
-          data: { label: "node 2" },
-        };
-
-        node1.push(newNode0);
-        setElements((es) => es.concat(newNode0));
-      }
+      //   node1.push(newNode0);
+      //   setElements((es) => es.concat(newNode0));
+      // }
       // disabledStripperAndExplorerTab();
     },
     [rfInstance]
@@ -1283,7 +1121,7 @@ function Home() {
       }
       delete connectionInfo_source_target[elem.id];
 
-      if (elem.id.replace(/[\d_]+/g, "") == "anuj") {
+      // if (elem.id.replace(/[\d_]+/g, "") == "cartridgefilter") {
         c_anuj.splice(
           c_anuj.indexOf(Number(elem.id.substring(elem.id.indexOf("_") + 1))),
           1
@@ -1301,7 +1139,7 @@ function Home() {
           setTransactionCPQDataNew,
           elem?.data?.documentNumber
         );
-      }
+      // }
     }
     // @sudarsana this logic is main important for after deleting the unitops make sure stremNum_dict is empty
     if (!elem.id.includes("reactflow__edge")) {
@@ -1412,7 +1250,7 @@ function Home() {
       // "align-items": "center",
     });
 
-    if (unitopCurrentId == "anuj") {
+    if (unitopCurrentId == "cartridgefilter") {
       let isShowError = false; // Setting Errors and Warning icons to hidden
       const unitop_name = localStorage.getItem(id)
         ? localStorage.getItem(id)
@@ -1443,138 +1281,16 @@ function Home() {
       const unitopKey = displayValue.replace(/[\d_]+/g, "");
       const unitopName = unitopsNames[unitopKey];
       return (
-        <div className="custom-node-element">
-          <div className="unitop-close-icon-div">
-            <IconButton
-              aria-label="new"
-              // Replaced onClick instand of OnMouseDown in version 11 @sudarsana
-              onClick={(e) => deleteUnitTop(e, node)}
-              size="small"
-              className="unitop-close-icon"
-            >
-              X
-            </IconButton>
-          </div>
-          <div
-            id="unitop_anuj"
-            style={{ marginTop: "-5px", height: "50px" }}
-            className={`Node_${id}`}
-          >
-            {shouldShowWarning && (
-              <p
-                style={{
-                  fontSize: "8px",
-                  position: "absolute",
-                  top: "-36px",
-                  left: "-1px",
-                  color: warningType === "error" ? "red" : "orange",
-                  fontWeight: warningType === "error" ? "bold" : "normal",
-                }}
-              >
-                {warningMessage}
-                {warningType === "error" && maxCapacity && requiredOutput && (
-                  <span style={{ display: "block", fontSize: "7px" }}>
-                    {/* (Req: {requiredOutput.toFixed(0)} | Max:{" "} */}
-                    {/* {maxCapacity.toFixed(0)}) */}
-                  </span>
-                )}
-              </p>
-            )}
-            <div
-              className={`${id} unitop-label `}
-              style={{
-                //  display: "none",
-                width: "-webkit-fill-available",
-              }}
-              id="tooltip"
-            >
-              <Tooltip title={unitopName} placement="top" arrow>
-                <input
-                  className="nodrag"
-                  type="text"
-                  id={`anujText${id}`}
-                  key={unitopName}
-                  style={{
-                    marginTop: "-10px",
-                    // width: "-webkit-fill-available",
-                    height: 10,
-                    fontSize: 9,
-                    border: "none",
-                    textAlign: "center",
-                  }}
-                  autoComplete="off"
-                  onFocus={(e) => {
-                    onMouseEnterNode(e, id);
-                  }}
-                  onBlur={(e) => {
-                    onBluerNode(e, id);
-                  }}
-                  placeholder={
-                    localStorage.getItem(id)
-                      ? null
-                      : localStorage.setItem(id, `CF_${checkUnitopExitsId}`)
-                  }
-                  onChange={(e) => {
-                    setAnujName(e.target.value);
-                    localStorage.setItem(id, e.target.value);
-                    localStorage.setItem("globalExitBtn", "true");
-                    // setChecked(false);
-                  }}
-                  onKeyDown={handleEnter}
-                  onMouseOver={(e) => {
-                    e.target.style.color = "#0679CC";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.color = "#000";
-                  }}
-                  defaultValue={unitopName}
-                />
-              </Tooltip>
-            </div>
-            <div className="nodeimg" id={id}>
-              <input
-                className="nodrag"
-                type="image"
-                src={CF_new}
-                width="48"
-                height="36"
-                style={{ zIndex: "-9", position: "relative" }}
-              />
-            </div>
-          </div>
-          <Tooltip
-            title="Inlet"
-            onMouseOver={(e) => {
-              hoverSource(e);
-            }}
-            onMouseLeave={(e) => {
-              exithoverSource(e);
-            }}
-          >
-            <Handle
-              id="a"
-              type="target"
-              position="left"
-              style={{ background: "green" }}
-            />
-          </Tooltip>
-          <Tooltip
-            title="Outlet"
-            onMouseOver={(e) => {
-              hoverSource(e);
-            }}
-            onMouseLeave={(e) => {
-              exithoverSource(e);
-            }}
-          >
-            <Handle
-              id="c"
-              type="source"
-              position="right"
-              style={{ background: "blue" }}
-            />
-          </Tooltip>
-        </div>
+        <UnitopComponent
+          id={"id"}
+          checkUnitopExitsId={checkUnitopExitsId}
+          unitopName={unitopName}
+          node={node}
+          handleEnter={handleEnter}
+          deleteUnitTop={(e, node) => deleteUnitTop(e, node)}
+          warningType={warningType}
+          image={CF_new}
+        />
       );
     }
     // updateControlsButtonTitle();
@@ -1587,7 +1303,7 @@ function Home() {
     () => ({
       // vinod added ancillary inline
       // customnode_stripper: CustomNode,
-      customnode_anuj: CustomNode,
+      customnode_cartridgefilter: CustomNode,
       // customnode_chemical_dosing: CustomNode,
       // customnode_uvlight: CustomNode,
       // customnode_dpump: CustomNode,
