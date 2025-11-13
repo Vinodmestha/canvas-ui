@@ -372,17 +372,6 @@ const UnitopModalComponent = (props) => {
       const idNumber = props?.anujDetails?.id
         ? Number(props.anujDetails.id.split("_")[1])
         : null;
-      // let transactionData= JSON.parse(localStorage.getItem(transactionID));
-      // console.log(transactionData)
-      // if(!!transactionData?.length){
-      //   for(let i=1; i<indexValue; i++){
-      //     const filteredData= transactionData.filter((item,i)=>{
-      //           return item?.productIndex!==String(i);
-      //     })
-      //     myArray.splice(indexToModify, 0, newObject);
-      //     console.log(filteredData, props.transactionCPQData);
-      //   }
-      // }
 
       if (!existingIndices || existingIndices.length === 0) {
         setFlowIndex(1);
@@ -415,9 +404,6 @@ const UnitopModalComponent = (props) => {
 
   const {
     handleCloseStripper,
-    anujDetails,
-    disabledStripperAndExplorerTab,
-    translateObject,
   } = props;
 
   const handleCloseSplitModal = () => {

@@ -74,20 +74,12 @@ import Sidebar from "../../components/layout/sidebar/Sidebar";
 import DownloadFlowsheet from "../../components/common/DownloadFlowsheet";
 // import { useTranslation } from "react-i18next";
 
-const unitopsNames = {
-  CF: "Cartridge Filter",
-  STR: "Clean in Place (CIP)",
-  Dose: "Chemical Feed",
-  DPUMP: "Distribution Pump",
-  UV: "UV Light",
-  PROFLEX: "PROflex",
-};
 const unitopsErrorLabel = {
-  cartridgefilter: "Cartridge Filter",
-  stripper: "CIP",
-  chemicaldosing: "Chemical Feed",
-  dpump: "Distribution Pump",
-  uvlight: "uVLight",
+  cartridgeFilter: "Cartridge Filter",
+  CIP: "CIP",
+  chemicalFeed: "Chemical Feed",
+  distributionPump: "Distribution Pump",
+  uvLight: "uVLight",
   proflex: "PROflex",
 };
 // vinod added dynamically path to check fn
@@ -201,8 +193,8 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
   const autoSizeRef = useRef(autoSizeCalculation);
   // Fix 1: Use useLayoutEffect to ensure data loads before render
   React.useLayoutEffect(() => {
-    console.log("🔄 Loading unitop data, refreshKey:", refreshKey);
-    console.log("🔄 connectionOrderState:", connectionOrderState);
+    console.log(" Loading unitop data, refreshKey:", refreshKey);
+    console.log(" connectionOrderState:", connectionOrderState);
 
     const newCache = {};
 
@@ -232,7 +224,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
       }
     });
 
-    console.log("🔄 Setting cache with keys:", Object.keys(newCache));
+    console.log(" Setting cache with keys:", Object.keys(newCache));
     setUnitopDataCache(newCache);
   }, [refreshKey, connectionOrderState.length]); // Add length as dependency
   useEffect(() => {
@@ -1971,7 +1963,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
       const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const type = event.dataTransfer.getData("application/reactflow");
       const unitopType = event.dataTransfer.getData("application/unitoptype");
-
+console.log(unitopType)
       const position = rfInstance.project({
         x: event.clientX - reactFlowBounds.left - 30,
         y: event.clientY - reactFlowBounds.top - 20,
@@ -2009,6 +2001,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
 
         // Get config for this unitop type
         const config = UNITOP_CONFIG[unitopType];
+        console.log(config,"config", unitopType)
         if (!config) {
           console.error(
             `No configuration found for unitop type: ${unitopType}`
@@ -2070,20 +2063,20 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
       setUnitopVisible(true);
     }
   }, []);
-  // function to animate the connection for outgoing connection when user clicks any untiop
-  const GetOutgoingConnection = (ob, elms) => {
-    setElements(() => {
-      for (let i = 0; i < elms.length; i++) {
-        if (elms[i].source != undefined && elms[i].source == ob) {
-          elms[i].animated = true;
-        } else {
-          elms[i].animated = false;
-        }
-      }
-      return [...elms];
-    });
-    // updateControlsButtonTitle();
-  };
+  // // function to animate the connection for outgoing connection when user clicks any untiop
+  // const GetOutgoingConnection = (ob, elms) => {
+  //   setElements(() => {
+  //     for (let i = 0; i < elms.length; i++) {
+  //       if (elms[i].source != undefined && elms[i].source == ob) {
+  //         elms[i].animated = true;
+  //       } else {
+  //         elms[i].animated = false;
+  //       }
+  //     }
+  //     return [...elms];
+  //   });
+  //   // updateControlsButtonTitle();
+  // };
 
   function handleEnter(event) {
     if (event.keyCode === 13) {
@@ -2574,23 +2567,19 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
       console.warn(`No configuration found for unitop type: ${unitopType}`);
       return null;
     }
+// Force re-read from localStorage on each render
+  const getUnitopDataDirect = JSON.parse(
+    localStorage.getItem(`unitop_${id}`) || 'null'
+  );
 
+  const autoSizeDataFromStorage = JSON.parse(
+    localStorage.getItem("autoSizecalcultionValue") || '[]'
+  );
+
+  const matchingItemFromStorage = autoSizeDataFromStorage?.find(
+    (item) => item?.id === id
+  );
     // ===== WARNING LOGIC FROM ORIGINAL CODE =====
-
-    // Get data from localStorage
-    const getUnitopDataDirect = (() => {
-      const data = localStorage.getItem(`unitop_${id}`);
-      return data ? JSON.parse(data) : null;
-    })();
-
-    const autoSizeDataFromStorage = (() => {
-      const data = localStorage.getItem("autoSizecalcultionValue");
-      return data ? JSON.parse(data) : [];
-    })();
-
-    const matchingItemFromStorage = autoSizeDataFromStorage?.find(
-      (item) => item?.id === id
-    );
 
     const transactionData = (() => {
       try {
@@ -2734,20 +2723,12 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
         exithoverSource={exithoverSource}
       />
     );
-  }, []);
+  }, [refreshKey]);
   // Added useMemo hook to avoid the re-render in version 11
   const nodeTypes = useMemo(
     () => ({
       // vinod added ancillary inline
-      // customnode_stripper: CustomNode,
       customnode_unitops: CustomNode,
-      // customnode_chemical_dosing: CustomNode,
-      // customnode_uvlight: CustomNode,
-      // customnode_dpump: CustomNode,
-
-      // membrane filtartion
-      // customnode_proflex: CustomNode,
-      // customnode_zpak: CustomNode,
     }),
     [CustomNode]
   );
@@ -2756,23 +2737,23 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
     setUnitopVisible(false);
     setUnitopDetails(null);
   }, []);
-  const utKeys = {
-    anuj: "cartridge-filter",
-    stripper: "cip",
-    chemicaldosing: "chemical-feed",
-    dpump: "distribution-pump",
-    uvlight: "uv-light",
-    proflex: "proflex-nam",
-    zpak: "proflex-nam",
+  
+   const mapping = {
+    cartridgeFilter: "cartridgeFilter",
+    distributionPump: "distributionPump",
+    chemicalFeed: "chemicalFeed",
+    uvLight: "uvLight",
+    CIP: "CIP",
   };
   // Function to get recovery value for a given unitop ID
   const getRecoveryForUnitop = (unitopId, targetOutput, qty = 1) => {
     const extractUnitop = unitopId?.split("_")[0];
-    const getData = utKeys[extractUnitop];
+    const getData = mapping[extractUnitop];
     const filterData = unitopJSONData?.find((item) =>
       item.slug.includes(getData)
     );
 
+    console.log(filterData, getData,extractUnitop)
     if (!filterData || !filterData.model || filterData.model.length === 0) {
       return {
         recovery: 1,
@@ -2825,6 +2806,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
     const selectedModel = modelsWithAutoSize.find(
       (m) => Number(m.auto_size) >= targetOutput
     );
+    console.log(selectedModel,"selectedModel")
 
     return {
       recovery: selectedModel?.recovery || 1,
@@ -2940,7 +2922,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
       const waste = inflow - output;
 
       const recoveryPercent = recovery * 100;
-
+console.log(recoveryValue,"recoveryValue")
       const hasRecommendedModel =
         recoveryValue?.hasAutoSize && recoveryValue?.model;
       const newRecommendedAge = recoveryValue?.model?.label;
@@ -3056,9 +3038,9 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
     autoSizeRef.current = calcArray;
 
     setRefreshKey((prev) => prev + 1);
-    setTimeout(() => {
-      setRefreshKey((prev) => prev + 1);
-    }, 100);
+    // setTimeout(() => {
+    //   setRefreshKey((prev) => prev + 1);
+    // }, 100);
   };
   const handleCloseErrorModal = () => {
     setErrorModal(false);

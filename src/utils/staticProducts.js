@@ -3,12 +3,13 @@ import { Chemical_Dosing, CF_new, uv, stripperImage } from "../assets/images";
 // Static product data - replace this with API call later
 export const staticProducts = [
   {
-    id: "cartridgefilter",
+    id: "cartridgeFilter",
     name: "Cartridge Filter",
     displayName: "Cartridge Filter",
     unitopType: "cartridgeFilter",
     prefix: "CF",
     imageUrl: CF_new,
+    path: "/config/proGen/filtration/cartridgeFilter",
     category: "Ancillary (Inline)",
     regions: ["NAM", "EMEA"],
     frequencies: ["50Hz", "60Hz"],
@@ -26,6 +27,7 @@ export const staticProducts = [
     unitopType: "CIP",
     prefix: "STR",
     imageUrl: stripperImage,
+    path: "/config/proGen/filtration/CIP",
     category: "Ancillary (Inline)",
     regions: ["NAM"],
     frequencies: ["50Hz", "60Hz"],
@@ -42,6 +44,7 @@ export const staticProducts = [
     unitopType: "chemicalFeed",
     prefix: "Dose",
     imageUrl: Chemical_Dosing,
+    path: "/config/proGen/ancillary/chemicalFeed",
     category: "Ancillary (Inline)",
     regions: ["NAM", "EMEA"],
     frequencies: ["50Hz", "60Hz"],
@@ -58,6 +61,7 @@ export const staticProducts = [
     unitopType: "distributionPump",
     prefix: "DPUMP",
     imageUrl: CF_new,
+    path: "/config/proGen/ancillary/distributionPump",
     category: "Ancillary (Inline)",
     regions: ["NAM", "EMEA"],
     frequencies: ["50Hz", "60Hz"],
@@ -74,6 +78,7 @@ export const staticProducts = [
     unitopType: "uvLight",
     prefix: "UV",
     imageUrl: uv,
+    path: "/config/proGen/mobileEquipment/uVLight",
     category: "Ancillary (Inline)",
     regions: ["NAM"],
     frequencies: ["60Hz"],
@@ -135,7 +140,7 @@ export const transformForSidebar = (products) => {
   // Convert to array format for sidebar
   return Object.entries(grouped).map(([category, items]) => ({
     label: category,
-    value: category.toLowerCase().replace(/\s+/g, "-"),
+    value: category,
     children: items,
   }));
 };
@@ -155,15 +160,13 @@ export const mapCPQProductToUnitopType = (product) => {
     CIP: "CIP",
   };
 
-  return (
-    mapping[productModel] || productModel?.toLowerCase().replace(/\s+/g, "")
-  );
+  return mapping[productModel] || productModel;
 };
 
 /**
  * Create canvas nodes from CPQ configured products
  */
-// ✅ In createNodesFromCPQProducts function
+//  In createNodesFromCPQProducts function
 export const createNodesFromCPQProducts = (
   configuredProducts,
   unitopConfig,
@@ -184,7 +187,7 @@ export const createNodesFromCPQProducts = (
   const nodes = [];
   const edges = [];
 
-  // ✅ RESET ID trackers at the start
+  //  RESET ID trackers at the start
   window.unitopIdTrackers = {};
 
   configuredProducts.forEach((product, index) => {
@@ -197,15 +200,15 @@ export const createNodesFromCPQProducts = (
 
     const config = unitopConfig[unitopType];
 
-    // ✅ Initialize tracker for this type if not exists
+    //  Initialize tracker for this type if not exists
     if (!window.unitopIdTrackers[unitopType]) {
       window.unitopIdTrackers[unitopType] = [];
     }
 
-    // ✅ Use index + 1 directly for CPQ products
+    //  Use index + 1 directly for CPQ products
     const idNumber = index + 1;
 
-    // ✅ Only add to tracker, don't search for gaps
+    //  Only add to tracker, don't search for gaps
     window.unitopIdTrackers[unitopType].push(idNumber);
 
     const nodeId = `${unitopType}_${idNumber}`;
@@ -226,7 +229,7 @@ export const createNodesFromCPQProducts = (
     localStorage.setItem(unitopStorageKey, JSON.stringify(unitopData));
     localStorage.setItem(nodeId, shortName);
 
-    console.log(`✅ Created unitop: ${nodeId} -> ${shortName}`);
+    console.log(` Created unitop: ${nodeId} -> ${shortName}`);
 
     const position = {
       x: startX + index * spacing,
@@ -253,7 +256,7 @@ export const createNodesFromCPQProducts = (
     nodes.push(node);
   });
 
-  // ✅ Create edges using actual node indices
+  //  Create edges using actual node indices
   for (let i = 0; i < nodes.length - 1; i++) {
     const sourceNode = nodes[i];
     const targetNode = nodes[i + 1];
