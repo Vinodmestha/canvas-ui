@@ -1,0 +1,28 @@
+const loaderStyle = {
+  height: "12px",
+  width: "80%",
+  background:
+    "no-repeat linear-gradient(#6100ee 0 0), no-repeat linear-gradient(#6100ee 0 0), #ccc",
+  backgroundSize: "60% 100%",
+  animation: "l16 5s infinite",
+  borderRadius: "6px",
+  margin: "auto",
+};
+
+const keyframes = `
+@keyframes l16 {
+  0%   {background-position: -150% 0, -150% 0;}
+  66%  {background-position: 250% 0, -150% 0;}
+  100% {background-position: 250% 0, 250% 0;}
+}`;
+
+function Loader() {
+  return (
+    <>
+      <style>{keyframes}</style>
+      <div style={loaderStyle} />
+    </>
+  );
+}
+
+export default Loader;

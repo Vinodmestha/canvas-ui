@@ -1,7 +1,7 @@
 export const unitopJSONData = [
   {
     label: "Cartridge Filter",
-    slug: "cartridgefilter",
+    slug: "cartridgeFilter",
     region: "NAM",
     packagedSystemFirmProposal: true,
     // icon: cartridge,
@@ -70,7 +70,7 @@ export const unitopJSONData = [
   },
   {
     label: "CIP",
-    slug: "stripper",
+    slug: "CIP",
     region: "NAM",
     packagedSystemFirmProposal: true,
     model: [
@@ -540,7 +540,7 @@ export const unitopJSONData = [
   },
   {
     label: "Chemical Feed",
-    slug: "chemicalfeed",
+    slug: "chemicalFeed",
     region: "NAM,EMEA",
     packagedSystemFirmProposal: true,
     model: [
@@ -589,7 +589,7 @@ export const unitopJSONData = [
   },
   {
     label: "Distribution Pump",
-    slug: "distributionpump",
+    slug: "distributionPump",
     region: "NAM",
     packagedSystemFirmProposal: true,
     model: [
@@ -1234,7 +1234,7 @@ export const unitopJSONData = [
   },
   {
     label: "UV Light",
-    slug: "uvlight",
+    slug: "uvLight",
     region: "NAM",
     packagedSystemFirmProposal: true,
     model: [

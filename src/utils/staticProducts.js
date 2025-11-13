@@ -6,9 +6,8 @@ export const staticProducts = [
     id: "cartridgefilter",
     name: "Cartridge Filter",
     displayName: "Cartridge Filter",
-    unitopType: "cartridgefilter",
+    unitopType: "cartridgeFilter",
     prefix: "CF",
-    code: "CF",
     imageUrl: CF_new,
     category: "Ancillary (Inline)",
     regions: ["NAM", "EMEA"],
@@ -24,9 +23,8 @@ export const staticProducts = [
     id: "stripper",
     name: "Clean in Place (CIP)",
     displayName: "CIP",
-    unitopType: "stripper",
+    unitopType: "CIP",
     prefix: "STR",
-    code: "STR",
     imageUrl: stripperImage,
     category: "Ancillary (Inline)",
     regions: ["NAM"],
@@ -41,9 +39,8 @@ export const staticProducts = [
     id: "chemicaldosing",
     name: "Chemical Feed",
     displayName: "Chemical Feed",
-    unitopType: "chemicaldosing",
+    unitopType: "chemicalFeed",
     prefix: "Dose",
-    code: "Dose",
     imageUrl: Chemical_Dosing,
     category: "Ancillary (Inline)",
     regions: ["NAM", "EMEA"],
@@ -58,9 +55,8 @@ export const staticProducts = [
     id: "dpump",
     name: "Distribution Pump",
     displayName: "Distribution Pump",
-    unitopType: "dpump",
+    unitopType: "distributionPump",
     prefix: "DPUMP",
-    code: "DPUMP",
     imageUrl: CF_new,
     category: "Ancillary (Inline)",
     regions: ["NAM", "EMEA"],
@@ -75,9 +71,8 @@ export const staticProducts = [
     id: "uvlight",
     name: "UV Light",
     displayName: "UV Light",
-    unitopType: "uvlight",
+    unitopType: "uvLight",
     prefix: "UV",
-    code: "UV",
     imageUrl: uv,
     category: "Ancillary (Inline)",
     regions: ["NAM"],
@@ -153,15 +148,11 @@ export const mapCPQProductToUnitopType = (product) => {
   const productModel = product.configAttributes?.productModel_allFamilies;
 
   const mapping = {
-    cartridgeFilter: "cartridgefilter",
-    distributionPump: "dpump",
-    chemicalFeed: "chemicaldosing",
-    uvLight: "uvlight",
-    stripper: "stripper",
-    cip: "stripper",
-    stripper: "stripper",
-    CIP: "stripper", // ← ADD THIS LINE
-    cip: "stripper",
+    cartridgeFilter: "cartridgeFilter",
+    distributionPump: "distributionPump",
+    chemicalFeed: "chemicalFeed",
+    uvLight: "uvLight",
+    CIP: "CIP",
   };
 
   return (
@@ -172,6 +163,7 @@ export const mapCPQProductToUnitopType = (product) => {
 /**
  * Create canvas nodes from CPQ configured products
  */
+// ✅ In createNodesFromCPQProducts function
 export const createNodesFromCPQProducts = (
   configuredProducts,
   unitopConfig,
@@ -179,49 +171,62 @@ export const createNodesFromCPQProducts = (
   startY = 100,
   spacing = 250
 ) => {
+  if (!configuredProducts || !Array.isArray(configuredProducts)) {
+    console.error("configuredProducts must be an array");
+    return { nodes: [], edges: [], currentFlowState: null };
+  }
+
+  if (!unitopConfig || typeof unitopConfig !== "object") {
+    console.error("unitopConfig is undefined or invalid");
+    return { nodes: [], edges: [], currentFlowState: null };
+  }
+
   const nodes = [];
   const edges = [];
 
-  if (!window.unitopIdTrackers) {
-    window.unitopIdTrackers = {};
-  }
+  // ✅ RESET ID trackers at the start
+  window.unitopIdTrackers = {};
 
   configuredProducts.forEach((product, index) => {
     const unitopType = mapCPQProductToUnitopType(product);
-    const config = unitopConfig[unitopType];
 
-    if (!config) {
-      console.warn(`No configuration found for unitop type: ${unitopType}`);
+    if (!unitopType || !unitopConfig[unitopType]) {
+      console.error(`Invalid unitop type: ${unitopType}`);
       return;
     }
 
+    const config = unitopConfig[unitopType];
+
+    // ✅ Initialize tracker for this type if not exists
     if (!window.unitopIdTrackers[unitopType]) {
       window.unitopIdTrackers[unitopType] = [];
     }
 
-    let idNumber = 1;
-    const existingIds = window.unitopIdTrackers[unitopType];
-    if (existingIds.length > 0) {
-      existingIds.sort((a, b) => a - b);
-      for (let i = 0; i < existingIds.length; i++) {
-        if (idNumber === existingIds[i]) {
-          idNumber++;
-        } else {
-          break;
-        }
-      }
-    }
+    // ✅ Use index + 1 directly for CPQ products
+    const idNumber = index + 1;
 
+    // ✅ Only add to tracker, don't search for gaps
     window.unitopIdTrackers[unitopType].push(idNumber);
+
     const nodeId = `${unitopType}_${idNumber}`;
+    const shortName = `${config.prefix}_${idNumber}`;
+    console.log(product, nodeId);
+    const unitopStorageKey = `unitop_${nodeId}`;
+    const unitopData = {
+      age: product.configAttributes?.baseModelMap_allFamilies,
+      displayName: shortName,
+      qty: product.configAttributes?.canvasQty_allFamilies || 1,
+      id: unitopStorageKey,
+      type: nodeId,
+      // configuredViaCanvas: product.configuredViaCanvas || false,
+      // fromCPQ: true,
+      payloadData: product,
+    };
 
-    // Get base model name
-    const baseModel =
-      product.configAttributes?.baseModelMap_allFamilies ||
-      product.configAttributes?.coreProduct_PROflex ||
-      `${config.prefix}_${idNumber}`;
+    localStorage.setItem(unitopStorageKey, JSON.stringify(unitopData));
+    localStorage.setItem(nodeId, shortName);
 
-    localStorage.setItem(nodeId, baseModel);
+    console.log(`✅ Created unitop: ${nodeId} -> ${shortName}`);
 
     const position = {
       x: startX + index * spacing,
@@ -234,60 +239,57 @@ export const createNodesFromCPQProducts = (
       position: position,
       style: { width: "auto", height: "auto", zIndex: 5 },
       data: {
-        label: baseModel,
+        label: shortName,
+        displayName: shortName,
         unitopType: unitopType,
         config: config,
-        documentNumber: product.documentNumber,
-        transactionId: product.configAttributes?.transactionId_allFamilies,
-        cDSProductIndex: product.configAttributes?.cDSProductIndex_allFamilies,
-        frequency: product.configAttributes?.frequency_family?.value,
-        region: product.configAttributes?.region_allFamilies?.value,
-        currency: product.configAttributes?.currency_allFamilies?.value,
-        salesOrg: product.configAttributes?.salesOrg_allFamilies?.value,
-        productFamily: product.configAttributes?.productFamily_allFamilies,
-        productLine: product.configAttributes?.productLine_allFamilies,
-        configAttributes: product.configAttributes,
-        cpqProduct: product,
+        // fromCPQ: true,
+        unitopStorageKey: unitopStorageKey,
+        // documentNumber: product.documentNumber,
+        // transactionId: product.configAttributes?.transactionId_allFamilies,
       },
     };
 
     nodes.push(node);
-
-    // Create edge to next node
-    if (index < configuredProducts.length - 1) {
-      const nextProduct = configuredProducts[index + 1];
-      const nextUnitopType = mapCPQProductToUnitopType(nextProduct);
-
-      // Calculate next node ID
-      let nextIdNumber = 1;
-      if (window.unitopIdTrackers[nextUnitopType]) {
-        const nextIds = window.unitopIdTrackers[nextUnitopType];
-        nextIdNumber = nextIds.length > 0 ? Math.max(...nextIds) + 1 : 1;
-      }
-
-      const nextNodeId = `${nextUnitopType}_${nextIdNumber}`;
-
-      const edge = {
-        id: `e${nodeId}-${nextNodeId}`,
-        source: nodeId,
-        target: nextNodeId,
-        sourceHandle: "c",
-        targetHandle: "a",
-        type: "custom",
-        animated: false,
-        style: { stroke: "lightblue", strokeWidth: 2 },
-        markerEnd: { type: "arrowclosed" },
-        data: {
-          text: index + 1,
-          streamNum_dict: { [index + 1]: index + 1 },
-          connection_number: true,
-          source: nodeId,
-        },
-      };
-
-      edges.push(edge);
-    }
   });
 
-  return { nodes, edges };
+  // ✅ Create edges using actual node indices
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const sourceNode = nodes[i];
+    const targetNode = nodes[i + 1];
+
+    const edge = {
+      id: `e${sourceNode.id}-${targetNode.id}`,
+      source: sourceNode.id,
+      target: targetNode.id,
+      sourceHandle: "c",
+      targetHandle: "a",
+      type: "custom",
+      animated: false,
+      style: { stroke: "lightblue", strokeWidth: 2 },
+      markerEnd: { type: "arrowclosed" },
+      data: {
+        text: i + 1,
+        streamNum_dict: { [i + 1]: i + 1 },
+        connection_number: true,
+        source: sourceNode.id,
+      },
+    };
+
+    edges.push(edge);
+  }
+
+  const currentFlowState = {
+    elements: [...nodes, ...edges],
+    connectionInfo: {},
+    connectionInfo_source_target: {},
+    edge_id_details: [],
+    edges: edges,
+    streamNum_dict: {},
+    timestamp: Date.now(),
+  };
+
+  localStorage.setItem("currentFlowState", JSON.stringify(currentFlowState));
+
+  return { nodes, edges, currentFlowState };
 };

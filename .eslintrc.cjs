@@ -11,8 +11,8 @@ module.exports = {
     "plugin:import/errors",
     "plugin:import/warnings",
     "plugin:import/typescript",
-    "prettier",
     "plugin:prettier/recommended",
+    "prettier",
   ],
   parserOptions: {
     ecmaFeatures: {
@@ -114,5 +114,17 @@ module.exports = {
     "react/destructuring-assignment": "off",
     "no-empty": "off",
     "no-shadow": "off",
+    "import/no-extraneous-dependencies": [
+      "error",
+      {
+        devDependencies: [
+          "**/*.config.js",
+          "**/*.config.cjs",
+          "**/*.config.ts",
+          "vite.config.js",
+          "vite.config.ts",
+        ],
+      },
+    ],
   },
 };

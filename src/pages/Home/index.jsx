@@ -35,7 +35,11 @@ import "../Validation.css";
 import "./style.scss";
 import "../dnd.scss";
 import "reactflow/dist/style.css"; // Added CSS version 11 import statement
-import { checkExitsLocalStorageValue, defaultModalOptions, getBorderColor } from "../../utils";
+import {
+  checkExitsLocalStorageValue,
+  defaultModalOptions,
+  getBorderColor,
+} from "../../utils";
 import { CustomEdge } from "../CustomEdge";
 import {
   // settings,
@@ -56,9 +60,18 @@ import {
 } from "../../assets/images";
 import NotificationModal from "../../components/common/modal";
 import UnitopComponent from "../../components/common/unitop/UnitopComponent";
-import { createNodesFromCPQProducts } from "../../utils/staticProducts";
+import {
+  createNodesFromCPQProducts,
+  mapCPQProductToUnitopType,
+} from "../../utils/staticProducts";
 import UnitopModalComponent from "../../components/common/UnitopModalComponent";
 import { unitopJSONData } from "../../db/unitopJSONData";
+import RightSidebar from "../../components/layout/sidebar/RightsideBar";
+import { Rnd } from "react-rnd";
+import Loader from "../../components/common/Loader";
+import ErrorModal from "../../components/common/modal/error-modal";
+import Sidebar from "../../components/layout/sidebar/Sidebar";
+import DownloadFlowsheet from "../../components/common/DownloadFlowsheet";
 // import { useTranslation } from "react-i18next";
 
 const unitopsNames = {
@@ -77,6 +90,21 @@ const unitopsErrorLabel = {
   uvlight: "uVLight",
   proflex: "PROflex",
 };
+// vinod added dynamically path to check fn
+function getProductTypeFromNode(nodeType) {
+  console.log(nodeType);
+  const NODE_MAPPING = {
+    cartridgeFilter: "configproGen.filtration.cartridgeFilter",
+    CIP: "configproGen.filtration.CIP",
+    chemicalFeed: "configproGen.ancillary.chemicalFeed",
+    distributionPump: "configproGen.ancillary.distributionPump",
+    uVLight: "configproGen.mobileEquipment.uVLight",
+    proflex: "configflexConfigurator.flexConfigurator.proflex",
+    zPakR: "configproGen.membraneFilteration.zPakR",
+  };
+
+  return NODE_MAPPING[nodeType];
+}
 let unitop_source = [];
 let unitop_target = [];
 let unitop_edge = [];
@@ -91,13 +119,22 @@ let node1 = [];
 
 let c_anuj = [];
 
-let id_anuj = 1;
 let del_element_check = 0;
 
 let handleClickStr = "";
 let updateconnectionInfoDelete = false;
 
-function Home({ UNITOP_CONFIG }) {
+// GET WINDOW SCREEN WIDTH
+function getScreenWidth() {
+  const { innerWidth } = window;
+  return innerWidth;
+}
+// GET WINDOW SCREEN HEIGHT
+function getScreenHeight() {
+  const { innerHeight } = window;
+  return innerHeight;
+}
+function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
   const initialElements = [];
   const initialEdges = [];
   // upgraded version 11 elements changes
@@ -154,21 +191,76 @@ function Home({ UNITOP_CONFIG }) {
   const [configurationData, setConfigurationData] = useState(null);
   const [transactionCPQDataNew, setTransactionCPQDataNew] = useState({});
 
-  // const { t } = useTranslation();
-  // const flowKey = 'example-flow';
+  const [unitopDataCache, setUnitopDataCache] = useState({}); // Add this
+  // Add state to force re-render:
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [forceupdate, setForceupdate] = useState(0);
   const reactFlowWrapper = useRef(null);
-  // GET WINDOW SCREEN WIDTH
-  function getScreenWidth() {
-    const { innerWidth } = window;
-    return innerWidth;
-  }
-  // GET WINDOW SCREEN HEIGHT
-  function getScreenHeight() {
-    const { innerHeight } = window;
-    return innerHeight;
-  }
+  // Use refs to avoid dependency issues
+  const cacheRef = useRef(unitopDataCache);
+  const autoSizeRef = useRef(autoSizeCalculation);
+  // Fix 1: Use useLayoutEffect to ensure data loads before render
+  React.useLayoutEffect(() => {
+    console.log("🔄 Loading unitop data, refreshKey:", refreshKey);
+    console.log("🔄 connectionOrderState:", connectionOrderState);
 
-  // Save to localStorage whenever transactionCPQDataNew changes
+    const newCache = {};
+
+    // Make sure connectionOrderState exists and has items
+    if (!connectionOrderState || connectionOrderState.length === 0) {
+      console.warn("⚠️ connectionOrderState is empty!");
+      return;
+    }
+
+    connectionOrderState.forEach((nodeId) => {
+      const key = `unitop_${nodeId}`;
+      const data = localStorage.getItem(key);
+
+      console.log(`  Reading ${key}:`, data ? "Found" : "Not found");
+
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          newCache[nodeId] = parsed;
+          console.log(`    Loaded ${nodeId}:`, {
+            hasPayloadData: !!parsed.payloadData,
+            age: parsed.age,
+          });
+        } catch (e) {
+          console.error(`  ❌ Error parsing ${nodeId}:`, e);
+        }
+      }
+    });
+
+    console.log("🔄 Setting cache with keys:", Object.keys(newCache));
+    setUnitopDataCache(newCache);
+  }, [refreshKey, connectionOrderState.length]); // Add length as dependency
+  useEffect(() => {
+    cacheRef.current = unitopDataCache;
+    setForceupdate((prev) => prev + 1);
+  }, [unitopDataCache]);
+
+  useEffect(() => {
+    autoSizeRef.current = autoSizeCalculation;
+  }, [autoSizeCalculation]);
+
+  //  Define normalizeType at the top
+  const normalizeType = (val) =>
+    val?.replace(/^customnode_/, "").replace(/^node_/, "");
+
+  //  Load saved transaction data ONCE on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem("transactionCPQData");
+    if (savedData) {
+      try {
+        setTransactionCPQDataNew(JSON.parse(savedData));
+      } catch (error) {
+        console.error("Error loading transaction data:", error);
+      }
+    }
+  }, []);
+
+  //  Save to localStorage whenever transactionCPQDataNew changes
   useEffect(() => {
     if (
       transactionCPQDataNew &&
@@ -181,15 +273,7 @@ function Home({ UNITOP_CONFIG }) {
     }
   }, [transactionCPQDataNew]);
 
-  // Load saved transaction data
-  useEffect(() => {
-    const savedData = localStorage.getItem("transactionCPQData");
-    if (savedData) {
-      setTransactionCPQDataNew(JSON.parse(savedData));
-    }
-  }, []);
-
-  // Remove border animation after render
+  //  Remove border animation after render
   useEffect(() => {
     if (transactionCPQDataNew[cpqData?.transactionId]) {
       transactionCPQDataNew[cpqData.transactionId].forEach((item) => {
@@ -197,54 +281,137 @@ function Home({ UNITOP_CONFIG }) {
       });
     }
   }, [transactionCPQDataNew]);
-
+  //  Updated mergeIntoTransaction
   const mergeIntoTransaction = useCallback(
     (cpqData, mode, id, setTransactionCPQDataNew, uData) => {
       console.log("mergeIntoTransaction:", cpqData, mode, id, uData);
-      const transactionKey = cpqData.transactionId;
-      if (!transactionKey || !cpqData.productData) return;
 
-      if (uData?.id) {
+      const cpqDataKey = localStorage.getItem("cpq-data-key");
+      const parsedCpqData = cpqDataKey ? JSON.parse(cpqDataKey) : null;
+      const transactionKey =
+        parsedCpqData?.transactionId || cpqData.transactionId;
+
+      if (!transactionKey) return;
+
+      if (uData?.id || mode === "cpqPreload") {
         setTransactionCPQDataNew((prevState) => {
           const existingArray1 = prevState[transactionKey]
             ? [...prevState[transactionKey]]
             : [];
+
+          // Case-insensitive match by type
           const existingIndex = existingArray1.findIndex(
-            (item) => item.id === uData.id
+            (item) => item.type === uData.type
           );
 
           if (existingIndex !== -1) {
-            existingArray1[existingIndex] = uData;
+            // UPDATE existing
+            existingArray1[existingIndex] = {
+              ...existingArray1[existingIndex],
+              ...uData,
+            };
+            console.log(" Updated unitop:", uData.type);
           } else {
+            // ADD new
             existingArray1.push(uData);
+            console.log(" Added new unitop:", uData.type);
           }
 
           existingArray1.forEach((item) => {
             return getBorderColor(item?.type);
           });
 
+          //  Sort by connectionOrderState using FULL type (with suffix)
           if (
             Array.isArray(connectionOrderState) &&
-            connectionOrderState.length
+            connectionOrderState.length > 0
           ) {
+            console.log(
+              "Sorting by connectionOrderState:",
+              connectionOrderState
+            );
+
             existingArray1.sort((a, b) => {
-              const aIndex = connectionOrderState.indexOf(a.type);
-              const bIndex = connectionOrderState.indexOf(b.type);
+              // Use the full type as-is (e.g., "cartridgefilter_1")
+              const typeA = a.type;
+              const typeB = b.type;
+
+              // Find index in connectionOrderState
+              const aIndex = connectionOrderState.findIndex(
+                (item) => item === typeA
+              );
+              const bIndex = connectionOrderState.findIndex(
+                (item) => item === typeB
+              );
+
+              console.log(
+                `Comparing ${a.type} (index: ${aIndex}) vs ${b.type} (index: ${bIndex})`
+              );
+
               return (
                 (aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex) -
                 (bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex)
               );
             });
+
+            console.log(
+              " Sorted array:",
+              existingArray1.map((item) => `${item.type}: ${item.age}`)
+            );
           }
 
-          return { ...prevState, [transactionKey]: existingArray1 };
+          return { [transactionKey]: existingArray1 };
         });
       }
     },
     [connectionOrderState]
   );
 
-  // YOUR EXISTING MESSAGE HANDLER - NO CHANGES
+  // Add useEffect to re-sort when connectionOrderState changes
+  //  Re-sort transactionCPQData when connectionOrderState changes
+  useEffect(() => {
+    const cpqDataKey = localStorage.getItem("cpq-data-key");
+    if (!cpqDataKey) return;
+
+    try {
+      const parsedCpqData = JSON.parse(cpqDataKey);
+      const transactionKey = parsedCpqData?.transactionId;
+
+      if (transactionKey && connectionOrderState?.length > 0) {
+        setTransactionCPQDataNew((prevState) => {
+          const existingArray = prevState[transactionKey];
+
+          if (!existingArray || existingArray.length === 0) return prevState;
+
+          const sortedArray = [...existingArray].sort((a, b) => {
+            const typeA = a.type;
+            const typeB = b.type;
+
+            const aIndex = connectionOrderState.findIndex(
+              (item) => item === typeA
+            );
+            const bIndex = connectionOrderState.findIndex(
+              (item) => item === typeB
+            );
+
+            return (
+              (aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex) -
+              (bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex)
+            );
+          });
+
+          console.log(
+            " Re-sorted by connectionOrderState:",
+            sortedArray.map((item) => `${item.type}: ${item.age}`)
+          );
+          return { ...prevState, [transactionKey]: sortedArray };
+        });
+      }
+    } catch (error) {
+      console.error("Error re-sorting transactionCPQData:", error);
+    }
+  }, [connectionOrderState]);
+  //  Message handler
   useEffect(() => {
     const handleMessage = (event) => {
       const eventDataFromCPQ = event.data;
@@ -279,6 +446,16 @@ function Home({ UNITOP_CONFIG }) {
       const lastUnitopType = localStorage.getItem("lastUnitopType");
 
       if (productIndexVal != null) {
+        //  UNITOP CONFIGURATION - Always use original transaction ID
+        const cpqDataKey = localStorage.getItem("cpq-data-key");
+        const parsedCpqData = cpqDataKey ? JSON.parse(cpqDataKey) : null;
+        const originalTransactionId = parsedCpqData?.transactionId;
+
+        if (!originalTransactionId) {
+          console.error("No transaction ID found in cpq-data-key");
+          return;
+        }
+
         const getData = JSON.parse(jsonConvertedEventDataFromCPQ?.productData);
 
         const updatedUnitop = {
@@ -286,7 +463,10 @@ function Home({ UNITOP_CONFIG }) {
             getData?.configAttributes?.baseModelMap_allFamilies ||
             getData?.configAttributes?.coreProduct_PROflex,
           qty: getData?.configAttributes?.canvasQty_allFamilies,
-          payloadData: jsonConvertedEventDataFromCPQ,
+          payloadData: {
+            ...jsonConvertedEventDataFromCPQ,
+            transactionId: originalTransactionId,
+          },
           id: lastunitopData,
           type: lastUnitopType,
         };
@@ -294,7 +474,10 @@ function Home({ UNITOP_CONFIG }) {
         localStorage.setItem(lastunitopData, JSON.stringify(updatedUnitop));
 
         mergeIntoTransaction(
-          jsonConvertedEventDataFromCPQ,
+          {
+            ...jsonConvertedEventDataFromCPQ,
+            transactionId: originalTransactionId,
+          },
           "unitops",
           lastunitopData,
           setTransactionCPQDataNew,
@@ -320,7 +503,80 @@ function Home({ UNITOP_CONFIG }) {
         localStorage.setItem("selections", JSON.stringify(selections));
 
         setCpqData(jsonConvertedEventDataFromCPQ);
-        setConfigurationData(newArr); // ← This is your "configurationData"!
+        setConfigurationData(newArr);
+
+        const transactionId = jsonConvertedEventDataFromCPQ.transactionId;
+        if (transactionId && newArr?.configuredProducts) {
+          const currentState = JSON.parse(
+            localStorage.getItem("currentFlowState")
+          );
+          const canvasElements = currentState?.elements || [];
+
+          const existingProducts = newArr.configuredProducts.map(
+            (product, index) => {
+              const productData = product.configAttributes || {};
+              const productIndex = String(index + 1);
+              const productModel = productData.productModel_allFamilies;
+
+              //  Find matching canvas element by checking localStorage for matching productIndex
+              let matchingElement = null;
+
+              for (const element of canvasElements) {
+                const storedData = localStorage.getItem(element.id);
+                if (storedData) {
+                  try {
+                    const parsed = JSON.parse(storedData);
+                    const storedProductIndex =
+                      parsed.payloadData?.productIndex || parsed.productIndex;
+                    if (storedProductIndex === productIndex) {
+                      matchingElement = element;
+                      break;
+                    }
+                  } catch (e) {}
+                }
+              }
+
+              //  Use canvas element id and type if found
+              const unitopId =
+                matchingElement?.id ||
+                `unitop_${productModel || "unknown"}_${productIndex}`;
+              const unitopType =
+                matchingElement?.id ||
+                `${productModel || "unknown"}_${productIndex}`;
+
+              return {
+                age:
+                  productData.baseModelMap_allFamilies ||
+                  productData.coreProduct_PROflex ||
+                  "Unknown Product",
+                qty: productData.canvasQty_allFamilies || 1,
+                payloadData: {
+                  transactionId: transactionId,
+                  region: jsonConvertedEventDataFromCPQ.region,
+                  salesOrg: jsonConvertedEventDataFromCPQ.salesOrg,
+                  currency: jsonConvertedEventDataFromCPQ.currency,
+                  productIndex: productIndex,
+                  productData: JSON.stringify(product),
+                  frequency: productData.frequency_family?.value || "60Hz",
+                  source: "cpqPreload",
+                },
+                id: unitopId,
+                type: unitopType, //  Set proper type from canvas or generate
+                connectedTo: null,
+                productIndex: productIndex,
+              };
+            }
+          );
+
+          setTransactionCPQDataNew({
+            [transactionId]: existingProducts,
+          });
+
+          console.log(
+            "Loaded CPQ products with types:",
+            existingProducts.map((p) => ({ type: p.type, id: p.id }))
+          );
+        }
       }
     };
 
@@ -328,7 +584,9 @@ function Home({ UNITOP_CONFIG }) {
     return () => window.removeEventListener("message", handleMessage);
   }, [mergeIntoTransaction]);
 
-  // UPDATED: Use configurationData instead of configurationData
+  //  SINGLE UNIFIED EFFECT to process configurationData
+  const hasProcessedConfigRef = useRef(false);
+
   useEffect(() => {
     if (!configurationData) return;
     if (Object.keys(UNITOP_CONFIG).length === 0) return;
@@ -341,29 +599,45 @@ function Home({ UNITOP_CONFIG }) {
 
     try {
       const baseCpqData = JSON.parse(cpqDataRaw);
+      const transactionId = baseCpqData.transactionId;
 
-      console.log("Creating nodes from CPQ products:", products);
+      const configId = products.map((p) => p.documentNumber).join("-");
 
-      // ✅ CLEAR EXISTING ID TRACKERS BEFORE CREATING NEW NODES
-      window.unitopIdTrackers = {};
+      if (lastProcessedTransactionRef.current === configId) {
+        console.log("Configuration already processed:", configId);
+        return;
+      }
 
-      // ✅ CLEAR EXISTING UNITOP DATA FROM LOCALSTORAGE
-      // Get all localStorage keys
+      console.log("Processing CPQ configuration:", transactionId);
+      lastProcessedTransactionRef.current = configId;
+
+      //  Clear ALL unitop-related keys from localStorage
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        // Remove unitop-specific keys (cartridgefilter_*, dpump_*, etc.)
-        if (key && key.includes("_") && !key.includes("-")) {
-          const unitopType = key.split("_")[0];
-          if (UNITOP_CONFIG[unitopType]) {
+        if (key) {
+          // Remove unitop_ keys
+          if (key.startsWith("unitop_")) {
             keysToRemove.push(key);
+          }
+          // Remove type_number keys (e.g., cartridgefilter_1)
+          else if (key.includes("_") && !key.includes("-")) {
+            const unitopType = key.split("_")[0];
+            if (UNITOP_CONFIG[unitopType]) {
+              keysToRemove.push(key);
+            }
           }
         }
       }
+
+      console.log("🗑️ Removing keys:", keysToRemove);
       keysToRemove.forEach((key) => localStorage.removeItem(key));
 
+      //  Reset ID trackers
+      window.unitopIdTrackers = {};
+
       // Create nodes from CPQ products
-      const { nodes, edges: cpqEdges } = createNodesFromCPQProducts(
+      const { nodes, edges: cpqEdges } = createNodesFromCQProducts(
         products,
         UNITOP_CONFIG,
         100,
@@ -371,61 +645,28 @@ function Home({ UNITOP_CONFIG }) {
         250
       );
 
-      console.log("Created nodes:", nodes);
-      console.log("Created edges:", cpqEdges);
-
-      if (nodes.length === 0) {
-        console.warn("No nodes were created from CPQ products");
-        return;
-      }
-
-      // Set elements and edges
-      setElements(nodes);
-      setEdges(
-        cpqEdges.map((edge) => ({
-          ...edge,
-          data: {
-            ...edge.data,
-            setEdgeText,
-            setModalOption,
-          },
-        }))
+      console.log(
+        " Created nodes:",
+        nodes.map((n) => n.id)
+      );
+      console.log(
+        " Created edges:",
+        cpqEdges.map((e) => e.id)
       );
 
-      // Update connection info
-      cpqEdges.forEach((edge) => {
-        connectionInfo[edge.source + edge.sourceHandle] = edge.sourceHandle;
-        connectionInfo[edge.target + edge.targetHandle] = edge.targetHandle;
-        connectionInfo_source_target[edge.source] = edge.target;
-      });
-
-      // Merge into transaction
-      const lastunitopData = localStorage.getItem("lastUnitop");
-      products.forEach((product, i) => {
-        const cpqDataForProduct = {
-          transactionId: baseCpqData.transactionId,
-          region: baseCpqData.region,
-          salesOrg: baseCpqData.salesOrg,
-          currency: baseCpqData.currency,
-          productIndex: product.configAttributes?.cDSProductIndex_allFamilies,
-          frequency: product.configAttributes?.frequency_family?.value,
-          source: "configuration",
-          productData: JSON.stringify(product),
-          index: i + 1,
-        };
-
-        mergeIntoTransaction(
-          cpqDataForProduct,
-          "cpqPreload",
-          lastunitopData,
-          setTransactionCPQDataNew,
-          cpqDataForProduct
-        );
-      });
+      // Rest of your code...
     } catch (e) {
       console.error("Error processing configurationData", e);
     }
-  }, [configurationData, UNITOP_CONFIG, mergeIntoTransaction]);
+  }, [configurationData, UNITOP_CONFIG]);
+
+  //  Reset processing flag when transaction changes
+  useEffect(() => {
+    if (cpqData?.transactionId) {
+      hasProcessedConfigRef.current = false;
+    }
+  }, [cpqData?.transactionId]);
+
   // Store both elements and edges
   useEffect(() => {
     // resetVariable();
@@ -495,11 +736,14 @@ function Home({ UNITOP_CONFIG }) {
   }, []);
 
   // 2. SAVE effect - only save when elements/edges actually exist
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // In your save effect:
   useEffect(() => {
-    // Don't save empty state
-    // if (elements.length === 0 && edges.length === 0) {
-    //   return;
-    // }
+    // Don't save during initial load or if both are empty
+    if (isInitialLoad || (elements.length === 0 && edges.length === 0)) {
+      return;
+    }
 
     const flowState = {
       elements,
@@ -512,7 +756,7 @@ function Home({ UNITOP_CONFIG }) {
     };
 
     localStorage.setItem("currentFlowState", JSON.stringify(flowState));
-    console.log("Saved flow state:", flowState); // Debug log
+    console.log("Saved flow state:", flowState);
   }, [elements, edges]); // Remove connectionOrderState dependency
 
   // 3. Keep your auto-edge creation effect as-is
@@ -620,12 +864,8 @@ function Home({ UNITOP_CONFIG }) {
     });
   }, [configurationData, UNITOP_CONFIG]);
 
-  // Load flow state on mount
   useEffect(() => {
-    // Wait for UNITOP_CONFIG to be loaded
-    if (Object.keys(UNITOP_CONFIG).length === 0) {
-      return;
-    }
+    if (Object.keys(UNITOP_CONFIG).length === 0) return;
 
     const savedFlowState = localStorage.getItem("currentFlowState");
 
@@ -657,20 +897,698 @@ function Home({ UNITOP_CONFIG }) {
               }))
             );
           }
+
+          // Mark initial load as complete
+          setTimeout(() => setIsInitialLoad(false), 100);
         } else {
-          // No saved elements, try CPQ data
           restoreFlowFromCPQ();
+          setTimeout(() => setIsInitialLoad(false), 100);
         }
       } catch (error) {
         console.error("Failed to restore flow state:", error);
         restoreFlowFromCPQ();
+        setTimeout(() => setIsInitialLoad(false), 100);
       }
     } else {
-      // No saved flow state, use CPQ data
       restoreFlowFromCPQ();
+      setTimeout(() => setIsInitialLoad(false), 100);
     }
-  }, [UNITOP_CONFIG, configurationData]);
+  }, [UNITOP_CONFIG]); // Remove configurationData dependency
 
+  function getChains(elements, edges) {
+    const visited = new Set();
+    const chains = [];
+    function dfsChain(nodeId, chain) {
+      if (visited.has(nodeId)) return;
+      visited.add(nodeId);
+      chain.push(nodeId);
+      const nextEdges = edges.filter((e) => e.source === nodeId);
+      nextEdges.forEach((e) => dfsChain(e.target, chain));
+    }
+
+    const targets = new Set(edges.map((e) => e.target));
+    const starts = elements.filter(
+      (el) => edges.some((e) => e.source === el.id) && !targets.has(el.id)
+    );
+
+    // Build chains from start nodes
+    starts.forEach((start) => {
+      const chain = [];
+      dfsChain(start.id, chain);
+      chains.push(chain);
+    });
+
+    // Visit remaining connected nodes not yet visited
+    elements.forEach((el) => {
+      const hasOutgoing = edges.some((e) => e.source === el.id);
+      if (hasOutgoing && !visited.has(el.id)) {
+        const chain = [];
+        dfsChain(el.id, chain);
+        chains.push(chain);
+      }
+    });
+
+    // Add disconnected nodes as single-item chains
+    // Instead of pushing disconnected nodes blindly at the end
+    const disconnectedChains = [];
+    elements.forEach((el) => {
+      if (!visited.has(el.id)) {
+        const chain = [];
+        dfsChain(el.id, chain);
+        disconnectedChains.push(chain);
+      }
+    });
+
+    // Merge: LHS first, then disconnected chains
+    console.log("disconnectedChains", disconnectedChains);
+    // return [...chains.flat(), ...disconnectedChains.flat()];
+
+    // this check is if unitop is one then we do auto size we din't get connectionOrderState update,
+    //  so here we checking if only one unitop then based on elements.length if it is 1 then this condition execute
+    if (elements?.length === 1) {
+      return disconnectedChains;
+    } else {
+      return chains;
+    }
+  }
+
+  function getFixedOrder(elements, edges) {
+    const chains = getChains(elements, edges);
+    const targets = new Set(edges.map((e) => e.target));
+    // Identify LHS chain
+    let lhsChain = chains.find((chain) => !targets.has(chain[0]));
+    if (!lhsChain) {
+      lhsChain = chains[0]; // fallback
+    }
+
+    const otherChains = chains.filter((chain) => chain !== lhsChain);
+    // Merge: LHS first, RHS second
+    return lhsChain ? [...lhsChain, ...otherChains.flat()] : chains.flat();
+  }
+
+  function updateEdgesWithChainLabels(elements, edges) {
+    const chains = getChains(elements, edges).filter(Boolean); // remove undefined/null chains
+    const targets = new Set(edges.map((e) => e.target));
+
+    // Identify LHS chain
+    let lhsChain = chains.find(
+      (chain) => Array.isArray(chain) && !targets.has(chain[0])
+    );
+    if (!lhsChain) lhsChain = chains[0] || [];
+
+    const otherChains = chains.filter((chain) => chain !== lhsChain);
+
+    const mergedChains = [lhsChain, ...otherChains].filter(Boolean);
+    const updatedEdges = [];
+    let labelCounter = 1;
+
+    mergedChains.forEach((chain) => {
+      if (!Array.isArray(chain)) return; // skip invalid chains
+      chain.forEach((nodeId) => {
+        const edge = edges.find((e) => e.source === nodeId);
+        if (edge) {
+          updatedEdges.push({
+            ...edge,
+            data: {
+              ...edge.data,
+              text: labelCounter,
+            },
+          });
+          labelCounter++;
+        }
+      });
+    });
+
+    return updatedEdges;
+  }
+
+  // Effect 1: update connection order and edge labels when elements/edges change
+  useEffect(() => {
+    const newOrder = getFixedOrder(elements, edges);
+    setConnectionOrderState([...newOrder]);
+
+    const updatedEdges = updateEdgesWithChainLabels(elements, edges);
+
+    if (JSON.stringify(updatedEdges) !== JSON.stringify(edges)) {
+      setEdges(updatedEdges);
+    }
+  }, [elements, edges]);
+
+  // 1️ configurationData effect - FIXED to preserve existing positions
+  useEffect(() => {
+    if (isInitialLoad) return;
+    if (!configurationData) return;
+    const products = configurationData?.configuredProducts ?? [];
+    if (products.length === 0) return;
+
+    console.log(products, "original order");
+
+    //  FIX: Pass UNITOP_CONFIG and destructure the result
+    const { nodes: nodesFromConfig, edges: edgesFromConfig } =
+      createNodesFromCPQProducts(
+        products,
+        UNITOP_CONFIG, //  Make sure UNITOP_CONFIG is imported/defined
+        100,
+        100,
+        250
+      );
+
+    //  FIX: Check if nodes were created
+    if (!nodesFromConfig || nodesFromConfig.length === 0) {
+      console.warn("No nodes created from CPQ products");
+      return;
+    }
+
+    const deletedIds = JSON.parse(
+      localStorage.getItem("deletedUnitops") || "[]"
+    );
+
+    const filteredPrev = elements.filter(
+      (el) => !deletedIds.includes(el.data?.storageKey)
+    );
+
+    const filteredPrevWithoutNewNodes = filteredPrev.filter(
+      (el) => !nodesFromConfig.some((n) => n.id === el.id)
+    );
+
+    const mergedElements = [];
+
+    // Add new nodes from config
+    nodesFromConfig.forEach((newNode) => {
+      mergedElements.push(newNode);
+    });
+
+    // Add existing nodes, preserving their current positions and data
+    filteredPrevWithoutNewNodes.forEach((existingNode) => {
+      const matchingConfigNode = nodesFromConfig.find((configNode) => {
+        return configNode.id === existingNode.id;
+      });
+
+      if (matchingConfigNode) {
+        mergedElements.push({
+          ...matchingConfigNode,
+          position: existingNode.position,
+          selected: existingNode.selected,
+          dragging: existingNode.dragging,
+          animated: existingNode.animated,
+          height: existingNode.height,
+          width: existingNode.width,
+          positionAbsolute: existingNode.positionAbsolute,
+        });
+      } else {
+        mergedElements.push(existingNode);
+      }
+    });
+
+    console.log(
+      "Merged elements preserving positions:",
+      mergedElements.map((el) => ({ id: el.id, x: el.position.x }))
+    );
+    setElements(mergedElements);
+
+    //  FIX: Merge edges from CPQ with existing edges
+    if (edgesFromConfig && edgesFromConfig.length > 0) {
+      setEdges((prev) => {
+        // Remove duplicate edges
+        const existingEdgeIds = new Set(prev.map((e) => e.id));
+        const newEdges = edgesFromConfig.filter(
+          (e) => !existingEdgeIds.has(e.id)
+        );
+        return [...prev, ...newEdges];
+      });
+    }
+
+    // Create edge for new nodes only
+    const actuallyNewNodes = nodesFromConfig.filter(
+      (newNode) => !elements.some((existingEl) => existingEl.id === newNode.id)
+    );
+
+    if (actuallyNewNodes.length && filteredPrevWithoutNewNodes.length) {
+      const newNodeId = actuallyNewNodes[0].id;
+      const firstOldNodeId = filteredPrevWithoutNewNodes[0].id;
+      if (firstOldNodeId && firstOldNodeId !== newNodeId) {
+        const newEdge = createEdge(
+          {
+            source: newNodeId,
+            target: firstOldNodeId,
+            sourceHandle: "c",
+            targetHandle: "a",
+          },
+          edges.length
+        );
+        setEdges((prev) => [...prev, newEdge]);
+      }
+    }
+  }, [configurationData, isInitialLoad]);
+
+  // 2️ Keep connectionOrderState in sync
+  useEffect(() => {
+    if (!elements.length) return;
+    const newOrder = getFixedOrder(elements, edges).map(normalizeType);
+    setConnectionOrderState([...newOrder]);
+  }, [elements, edges]);
+
+  // 3️ Reorder elements and update transactionCPQDataNew
+  useEffect(() => {
+    if (
+      !elements.length ||
+      !connectionOrderState.length ||
+      !transactionCPQDataNew
+    )
+      return;
+
+    //  Build order directly from elements IDs
+    const elementOrder = elements.map((el) => normalizeType(el.id));
+
+    // Reorder elements based on connectionOrderState (fallback to elementOrder if needed)
+    const reorderedElements = [...elements].sort((a, b) => {
+      const aIndex = connectionOrderState.indexOf(normalizeType(a.id));
+      const bIndex = connectionOrderState.indexOf(normalizeType(b.id));
+      return (
+        (aIndex === -1 ? elementOrder.indexOf(normalizeType(a.id)) : aIndex) -
+        (bIndex === -1 ? elementOrder.indexOf(normalizeType(b.id)) : bIndex)
+      );
+    });
+
+    if (JSON.stringify(reorderedElements) !== JSON.stringify(elements)) {
+      setElements(reorderedElements);
+    }
+
+    //  Reorder transactionCPQDataNew based on connectionOrderState (fallback to elementOrder)
+    const updatedTransactionData = JSON.parse(
+      JSON.stringify(transactionCPQDataNew)
+    );
+    Object.keys(updatedTransactionData).forEach((transactionKey) => {
+      updatedTransactionData[transactionKey] = updatedTransactionData[
+        transactionKey
+      ]
+        .sort((a, b) => {
+          const aIndex = connectionOrderState.indexOf(normalizeType(a.type));
+          const bIndex = connectionOrderState.indexOf(normalizeType(b.type));
+          return (
+            (aIndex === -1
+              ? elementOrder.indexOf(normalizeType(a.type))
+              : aIndex) -
+            (bIndex === -1
+              ? elementOrder.indexOf(normalizeType(b.type))
+              : bIndex)
+          );
+        })
+        .map((u) => {
+          const edge = edges.find(
+            (e) => normalizeType(e.source) === normalizeType(u.type)
+          );
+          return {
+            ...u,
+            connectedTo: edge ? edge.target : null,
+          };
+        });
+    });
+
+    if (
+      JSON.stringify(updatedTransactionData) !==
+      JSON.stringify(transactionCPQDataNew)
+    ) {
+      setTransactionCPQDataNew(updatedTransactionData);
+      localStorage.setItem(
+        "transactionCPQData",
+        JSON.stringify(updatedTransactionData)
+      );
+    }
+  }, [connectionOrderState, edges, elements, transactionCPQDataNew]);
+
+  // In parent
+  const updateProductQty = (transactionId, productId, newQty) => {
+    console.log(transactionId, productId, newQty);
+    setTransactionCPQDataNew((prevState) => {
+      const existingArray = prevState[transactionId]
+        ? [...prevState[transactionId]]
+        : [];
+      const existingIndex = existingArray.findIndex(
+        (item) => item.id === productId
+      );
+      if (existingIndex !== -1) {
+        const unitop = { ...existingArray[existingIndex], qty: newQty };
+        if (unitop.payloadData?.productData) {
+          const parsedProductInfoData =
+            typeof unitop.payloadData.productData === "string"
+              ? JSON.parse(unitop.payloadData.productData)
+              : { ...unitop.payloadData.productData };
+          parsedProductInfoData.configAttributes = {
+            ...parsedProductInfoData.configAttributes,
+            canvasQty_allFamilies: newQty,
+          };
+          unitop.payloadData = {
+            ...unitop.payloadData,
+            productData: JSON.stringify(parsedProductInfoData),
+          };
+        }
+        existingArray[existingIndex] = unitop;
+      }
+      const updatedState = { ...prevState, [transactionId]: existingArray };
+      localStorage.setItem("transactionCPQData", JSON.stringify(updatedState));
+      return updatedState;
+    });
+  };
+  // In CPQIntegration
+
+  const clearAutoSizeWarnings = () => {
+    connectionOrderState.forEach((nodeId) => {
+      const unitopId = `unitop_${nodeId}`;
+      const existingData = JSON.parse(localStorage.getItem(unitopId) || "{}");
+
+      // Clear autosize-related data but keep user's configured model
+      const updatedData = {
+        ...existingData,
+        recommendedModel: null,
+        hasAutoSize: false,
+        // Keep userSelectedModel as is - don't change it
+      };
+
+      localStorage.setItem(unitopId, JSON.stringify(updatedData));
+    });
+
+    // Clear autosize calculation
+    setAutoSizeCalculation([]);
+    localStorage.removeItem("autoSizecalcultionValue");
+    localStorage.removeItem("target_output");
+    localStorage.setItem("autoSizeUpdate", "false");
+    setAutoSizeUpdate(false);
+
+    // Refresh UI
+    setRefreshKey((prev) => prev + 1);
+  };
+  const CPQIntegration = async () => {
+    const errors = [];
+    const transactionData = localStorage.getItem("cpq-data-key");
+    const transactionDataNewData = localStorage.getItem("transactionCPQData");
+    const parsedNewdata = JSON.parse(transactionDataNewData || "{}");
+    if (!transactionData) return;
+
+    const parsedTransData = JSON.parse(transactionData);
+    const transactionId = parsedTransData.transactionId;
+    const getData = parsedNewdata[transactionId] || [];
+    const currentState = JSON.parse(localStorage.getItem("currentFlowState"));
+    console.log(getData, parsedNewdata, parsedNewdata[transactionId]);
+    // if unitops not added then we cannot proceed or add to cpq
+    if (!currentState) {
+      errors.push(...errors, "Please add a product to the canvas");
+    }
+
+    const elementsLength = currentState?.elements?.length ?? 0;
+    const edgesLength = currentState?.edges?.length ?? 0;
+
+    const result = currentState?.elements.filter((item2) => {
+      return !getData.some((item1) => item1.type === item2.id);
+    });
+    console.log(result, getData, currentState?.elements, currentState);
+    if (result?.length > 0) {
+      const errorMessages = result.map(
+        (u, index) =>
+          `Unconfigured Unitops (${index + 1}): ${
+            unitopsErrorLabel[u?.id.split("_")[0]] || "Unnamed UnitOp"
+          }`
+      );
+      errors.push(...errorMessages);
+    }
+
+    // Condition 2: Check connectivity
+    const connectedCount = currentState?.edges?.length ?? 0;
+    const elementsCount = (currentState?.elements?.length ?? 0) - 1;
+
+    // this first check basically for if only one unitop we need to add to cpq
+    if (currentState?.elements?.length > 1) {
+      // this 2nd check basically multiple unitops when edges are connected
+      if (
+        currentState?.elements.length !== 0 &&
+        connectedCount !== elementsCount
+      ) {
+        const err = ["Some Unitops edges are not connected."];
+        errors.push(...err);
+      }
+    }
+
+    if (errors.length > 0) {
+      // alert(errors.join("\n"));
+      setErrorModal(true);
+      setErrorModalDetails(errors);
+      setCpqBtnLoader(false);
+      return;
+    }
+    // Clear autosize warnings after successful validation
+    clearAutoSizeWarnings();
+    setCpqBtnLoader(true);
+    if (
+      elementsLength === (getData?.length ?? 0) &&
+      elementsLength - 1 === edgesLength
+    ) {
+      const apiGatewayUrl =
+        "https://ogsmf0l2t7.execute-api.us-east-1.amazonaws.com/Test-stage";
+
+      const callDeleteAPI = async (retryCount = 1) => {
+        const selectionsRaw = localStorage.getItem("selections");
+        const selections = selectionsRaw ? JSON.parse(selectionsRaw) : [];
+        if (selections.length === 0) return true;
+
+        const deletePayload = {
+          bsId: Number(transactionId),
+          callType: "delete",
+        };
+
+        try {
+          const deleteResponse = await fetch(apiGatewayUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(deletePayload),
+          });
+
+          if (deleteResponse.status === 500) {
+            setErrorModal(true);
+            setErrorModalDetails([`Delete API returned 500`]);
+            // alert("Delete API returned 500");
+            return false;
+          }
+
+          if (!deleteResponse.ok) {
+            if (retryCount > 0) {
+              return callDeleteAPI(retryCount - 1);
+            }
+            setErrorModal(true);
+            setErrorModalDetails([`Delete API HTTP error`]);
+            // alert("Delete API HTTP error");
+            return false;
+          }
+
+          const deleteData = await deleteResponse.json();
+          console.log(deleteData);
+          if (deleteData.statusCode !== 200) {
+            if (retryCount > 0) {
+              return callDeleteAPI(retryCount - 1);
+            }
+            // alert("Delete API statusCode error");
+            setErrorModal(true);
+            setErrorModalDetails([`Delete API statusCode error`]);
+            return false;
+          }
+          console.log("delete API Successfully called", deleteData);
+          return true;
+        } catch (err) {
+          console.log(err);
+          if (retryCount > 0) {
+            return callDeleteAPI(retryCount - 1);
+          }
+          setErrorModal(true);
+          setErrorModalDetails([`Delete API request failed`]);
+          // alert("Delete API request failed");
+          return false;
+        }
+      };
+
+      const callAddAPI = async () => {
+        return getData.reduce((promiseChain, unitop, index) => {
+          return promiseChain.then(async (successSoFar) => {
+            if (!successSoFar) return false; // stop chain if previous failed
+
+            const productInfo = unitop?.payloadData?.productData;
+            if (!productInfo) return true; // skip empty
+
+            const parsedProductInfoData =
+              typeof productInfo === "string"
+                ? JSON.parse(productInfo)
+                : productInfo;
+            const productType = getProductTypeFromNode(
+              parsedProductInfoData.configAttributes.productModel_allFamilies
+            );
+            setAddDataCurrentModel([
+              parsedProductInfoData.configAttributes.baseModelMap_allFamilies ||
+                parsedProductInfoData?.configAttributes?.coreProduct_PROflex,
+            ]);
+            console.log(productType, parsedProductInfoData.configAttributes);
+            const addPayload = {
+              bsId: Number(transactionId),
+              documentId: 36244074,
+              configData:
+                // parsedProductInfoData?.id
+                //   ? {}
+                //   :
+                parsedProductInfoData.configAttributes,
+              productType,
+              callType: "add",
+            };
+            try {
+              const response = await fetch(apiGatewayUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(addPayload),
+              });
+              console.log(
+                `Add API for index ${index}:`,
+                parsedProductInfoData,
+                addPayload,
+                response
+              );
+              console.log(response);
+              if (response.status === 500) {
+                // alert(`Add API returned 500 for index ${index}`);
+                setErrorModal(true);
+                setErrorModalDetails([
+                  `Unitops ${
+                    index + 1
+                  } Add API response error, please Add Data to CPQ`,
+                ]);
+                return false; // stop immediately
+              }
+
+              if (!response.ok) {
+                setErrorModal(true);
+                setErrorModalDetails([
+                  `Add API HTTP error for Unitops ${index + 1}`,
+                ]);
+                // alert(`Add API HTTP error for index ${index}`);
+                return false; // stop immediately
+              }
+
+              const responseData = await response.json();
+              console.log(responseData, "response add api call");
+              if (responseData.statusCode != 200) {
+                setErrorModal(true);
+                setErrorModalDetails([
+                  `Add API statusCode error for Unitops ${index + 1}`,
+                ]);
+                // alert(`Add API statusCode error for index ${index}`);
+                return false; // stop immediately
+              }
+              return true;
+            } catch (error) {
+              setErrorModal(true);
+              setErrorModalDetails([
+                `Please Add Data to CPQ, Unitop ${
+                  index + 1
+                } getting error response: ${error.message}`,
+              ]);
+              // alert(`Add API error for index ${index}: ${error.message}`);
+              return false; // stop immediately
+            }
+          });
+        }, Promise.resolve(true));
+      };
+
+      try {
+        const deleteSuccess = await callDeleteAPI();
+        if (!deleteSuccess) {
+          setCpqBtnLoader(false);
+          return;
+        }
+
+        const addSuccess = await callAddAPI();
+        if (!addSuccess) {
+          //  alert("Add API failed, process stopped");
+          setErrorModal(true);
+          setErrorModalDetails([
+            `Add API failed, Please check unitops before ADD Data to CPQ`,
+          ]);
+          setCpqBtnLoader(false);
+          setAddDataCurrentModel([]);
+
+          // this delete api call basically for if any of add products get failed after calling api
+          //  we need to clear or call delate api to remove all products from list
+          callDeleteAPI();
+          return; // stop completely, no retry
+        }
+        if (addSuccess) {
+          // Wait a moment for UI to update, then trigger image capture
+          setTriggerDownload(true);
+        }
+        //  alert("All products successfully added to transaction");
+        // window.top.postMessage(
+        //   "Sending Data From UPW Application",
+        //   "https://watertechnologiesdev.bigmachines.com"
+        // );
+        // localStorage.clear();
+        // window.location.href = `https://watertechnologiesdev.bigmachines.com/commerce/transaction/oraclecpqo/${transactionId}`;
+      } catch (error) {
+        console.log(`Error processing transaction: ${error.message}`);
+      }
+    } else {
+      alert("Please configure data before Add Data to CPQ1");
+    }
+  };
+  const callImageAPI = async (imageUrl) => {
+    const transactionData = localStorage.getItem("cpq-data-key");
+    if (!transactionData) return false; // return false if no transaction
+
+    const parsedTransData = JSON.parse(transactionData);
+    const transactionId = parsedTransData.transactionId;
+
+    const apiGatewayUrl =
+      "https://ogsmf0l2t7.execute-api.us-east-1.amazonaws.com/Test-stage";
+    const rawBase64 = imageUrl.replace(/^data:image\/png;base64,/, "");
+    const imagePayload = {
+      bsId: Number(transactionId),
+      callType: "uploadImage",
+      imageBase64: rawBase64,
+    };
+
+    try {
+      const response = await fetch(apiGatewayUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(imagePayload),
+      });
+      const data = await response.json();
+      console.log(data,"res")
+      if (data.statusCode === 200) {
+        // redirect only on success
+        window.top.postMessage(
+          "Sending Data From UPW Application",
+          "https://watertechnologiesdev.bigmachines.com"
+        );
+        localStorage.clear();
+        window.location.href = `https://watertechnologiesdev.bigmachines.com/commerce/transaction/oraclecpqo/${transactionId}`;
+        return true;
+      } else {
+        console.error("Image upload failed", data);
+        setErrorModal(true);
+        setErrorModalDetails(["Image upload failed"]);
+        return false;
+      }
+    } catch (err) {
+      setErrorModal(true);
+      setErrorModalDetails(["Image upload failed"]);
+      return false;
+    } finally {
+      setCpqBtnLoader(false);
+      setTriggerDownload(false);
+    }
+  };
+  console.log(
+    connectionOrderState,
+    edges,
+    elements,
+    transactionCPQDataNew,
+    configurationData,
+    "transactionCPQDataNew"
+  );
   const onConnect = (params) => {
     console.log(params);
     setEdges((eds) => {
@@ -696,7 +1614,7 @@ function Home({ UNITOP_CONFIG }) {
     }
     updateValue(); // calling the function here
     if (
-      checked_newButton == 0 &&
+      // checked_newButton == 0 &&
       connectionInfo[params.source + params.sourceHandle] !=
         params.sourceHandle &&
       connectionInfo[params.target + params.targetHandle] != params.targetHandle
@@ -827,6 +1745,7 @@ function Home({ UNITOP_CONFIG }) {
   const onEdgeContextMenu = (event, edge) => {
     event.preventDefault();
     // setVisibleFeed(false);
+    handleCloseModal(edge, "connection");
   };
 
   const onEdgeMouseEnter = () => {};
@@ -1045,107 +1964,7 @@ function Home({ UNITOP_CONFIG }) {
     },
     [getClosestEdge, setEdges]
   );
-  // Added useCallback hook in version 11
-  // const onDrop = useCallback(
-  //   (event) => {
-  //     console.log(rfInstance);
-  //     // when user deleting edge or unitops this logic is used to re-filling the entire connectionInfo dictionary
-  //     if (Object.keys(connectionInfo).length === 0) {
-  //       const edges = rfInstance?.toObject()?.edges ?? [];
-  //       edges.forEach((edge) => {
-  //         if (!edge.source.includes("mixsplit")) {
-  //           const sourceKey = edge.source + edge.sourceHandle;
-  //           connectionInfo[sourceKey] = edge.sourceHandle;
-  //         }
-  //         if (!edge.target.includes("mixsplit")) {
-  //           const targetKey = edge.target + edge.targetHandle;
-  //           connectionInfo[targetKey] = edge.targetHandle;
-  //         }
-  //       });
-  //     }
-  //     setAutoSizeUpdate(false);
-  //     // setChecked(false);
-  //     // convasEmptyFun();
-  //     localStorage.setItem("globalExitBtn", "true");
-  //     event.preventDefault();
-  //     const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-  //     const type = event.dataTransfer.getData("application/reactflow");
-  //     const position = rfInstance.project({
-  //       // @Sudarsana Fix the origin of nodes so that it will stay at the place where it is left while dropping on canvas
-  //       x: event.clientX - reactFlowBounds.left - 30,
-  //       y: event.clientY - reactFlowBounds.top - 20,
-  //     });
-  //     console.log(type);
-  //   //  if (type === "customnode_cartridgefilter") {
-  //       console.log(type);
-  //       if (c_anuj.length > 0) {
-  //         c_anuj.sort((a, b) => a - b);
-  //         id_anuj = 1;
-  //         for (let i = 0; i < c_anuj.length; i++) {
-  //           if (id_anuj === c_anuj[i]) {
-  //             id_anuj++;
-  //           } else {
-  //             break;
-  //           }
-  //         }
-  //       } else {
-  //         id_anuj = 1;
-  //       }
 
-  //       while (localStorage.getItem(`cartridgefilter_${id_anuj}`)) {
-  //         id_anuj++;
-  //       }
-
-  //       localStorage.setItem(`cartridgefilter_${id_anuj}`, `CF_${id_anuj}`);
-  //       c_anuj.push(id_anuj);
-
-  //       const newNode0 = {
-  //         id: `cartridgefilter_${id_anuj}`,
-  //         type,
-  //         position,
-  //         style: { width: "auto", height: "auto", zIndex: 5 },
-  //         data: { label: "node 2" },
-  //       };
-  //       console.log(c_anuj, newNode0);
-  //       node1.push(newNode0);
-  //       setElements((es) => es.concat(newNode0));
-  //     // }else if (type === "customnode_dpump") {
-  //     //   if (c_dpump.length > 0) {
-  //     //     c_dpump.sort((a, b) => a - b);
-  //     //     id_dpump = 1;
-  //     //     for (let i = 0; i < c_dpump.length; i++) {
-  //     //       if (id_dpump === c_dpump[i]) {
-  //     //         id_dpump++;
-  //     //       } else {
-  //     //         break;
-  //     //       }
-  //     //     }
-  //     //   } else {
-  //     //     id_dpump = 1;
-  //     //   }
-
-  //     //   while (localStorage.getItem(`dpump_${id_dpump}`)) {
-  //     //     id_dpump++;
-  //     //   }
-
-  //     //   localStorage.setItem(`dpump_${id_dpump}`, `DPUMP_${id_dpump}`);
-  //     //   c_dpump.push(id_dpump);
-
-  //     //   const newNode0 = {
-  //     //     id: `dpump_${id_dpump}`,
-  //     //     type,
-  //     //     position,
-  //     //     style: { width: "auto", height: "auto", zIndex: 5 },
-  //     //     data: { label: "node 2" },
-  //     //   };
-
-  //     //   node1.push(newNode0);
-  //     //   setElements((es) => es.concat(newNode0));
-  //     // }
-  //     // disabledStripperAndExplorerTab();
-  //   },
-  //   [rfInstance]
-  // );
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
@@ -1234,23 +2053,23 @@ function Home({ UNITOP_CONFIG }) {
 
   // Click the any unitop to call this function onClick unitop.
   const onElementClick = useCallback((event, element) => {
-  // Only handle node clicks, not edges
-  if (!element.source && !element.target) {
-    console.log('Clicked unitop:', element);
-    
-    // Set the unitop details
-    setUnitopDetails({
-      id: element.id,
-      type: element.data.unitopType,
-      label: element.data.label,
-      config: element.data.config,
-      data: element.data
-    });
-    
-    // Open the modal
-    setUnitopVisible(true);
-  }
-}, []);
+    // Only handle node clicks, not edges
+    if (!element.source && !element.target) {
+      console.log("Clicked unitop:", element);
+
+      // Set the unitop details
+      setUnitopDetails({
+        id: element.id,
+        type: element.data.unitopType,
+        label: element.data.label,
+        config: element.data.config,
+        data: element.data,
+      });
+
+      // Open the modal
+      setUnitopVisible(true);
+    }
+  }, []);
   // function to animate the connection for outgoing connection when user clicks any untiop
   const GetOutgoingConnection = (ob, elms) => {
     setElements(() => {
@@ -1311,9 +2130,88 @@ function Home({ UNITOP_CONFIG }) {
       }
     }, 100);
   };
+  // delete product from transactionCPQData
+  const deleteProductById = (
+    transactionKey,
+    ids = [],
+    setTransactionCPQDataNew,
+    documentNumber
+  ) => {
+    const getTransactionKey = JSON.parse(localStorage.getItem("cpq-data-key"));
+    const transactionKeyId = transactionKey ?? getTransactionKey?.transactionId;
+
+    // Ensure ids is an array
+    const idsArray = Array.isArray(ids) ? ids : [ids];
+
+    if (!idsArray || idsArray.length === 0) return;
+
+    // Load existing deleted IDs from localStorage
+    const deletedIds = JSON.parse(
+      localStorage.getItem("deletedUnitops") || "[]"
+    );
+
+    if (documentNumber) {
+      const selections = JSON.parse(localStorage.getItem("selections") || "[]");
+      // optional: update selections here
+    }
+
+    // Update state
+    setTransactionCPQDataNew((prevState) => {
+      const existingArray = prevState[transactionKeyId]
+        ? [...prevState[transactionKeyId]]
+        : [];
+
+      //  Case-insensitive filtering by id or type
+      const updatedArray = existingArray.filter((item) => {
+        const itemId = item.id;
+        const itemType = item.type;
+
+        return !idsArray.some((id) => {
+          const deleteId = id;
+          return itemId === deleteId || itemType === deleteId;
+        });
+      });
+
+      // Update localStorage transactionCPQData
+      const storedData = JSON.parse(
+        localStorage.getItem("transactionCPQData") || "{}"
+      );
+      if (storedData[transactionKeyId]) {
+        storedData[transactionKeyId] = storedData[transactionKeyId].filter(
+          (item) => {
+            const itemId = item.id;
+            const itemType = item.type;
+
+            return !idsArray.some((id) => {
+              const deleteId = id;
+              return itemId === deleteId || itemType === deleteId;
+            });
+          }
+        );
+        localStorage.setItem("transactionCPQData", JSON.stringify(storedData));
+      }
+
+      // Store deleted IDs
+      localStorage.setItem(
+        "deletedUnitops",
+        JSON.stringify([...deletedIds, ...idsArray])
+      );
+
+      console.log(
+        " Deleted from transactionCPQData:",
+        idsArray,
+        "Remaining:",
+        updatedArray.length
+      );
+
+      return { ...prevState, [transactionKeyId]: updatedArray };
+    });
+  };
+
   // #### function for deletion of unitop ########
   const handleConfirm = (isClose = false, elem) => {
     const { type } = elem;
+    console.log(elem)
     // console.log(type, elem);
     let previousUnitsData = [];
     let item = type;
@@ -1611,7 +2509,7 @@ function Home({ UNITOP_CONFIG }) {
     //  bug fixing after saving the file in case the connection info data not deleted --> starting code
     // commeted code  for bug fixing GB-2008
     //  bug fixing ending code
-    disabledStripperAndExplorerTab();
+    // disabledStripperAndExplorerTab();
     /**
      * remove the localstorage value when user delete the RO with Pump
      * roPump delete in localStorage but hppump value is not deleted
@@ -1660,21 +2558,141 @@ function Home({ UNITOP_CONFIG }) {
     setFindAllConnection(false);
     updateControlsButtonTitle();
   };
+
   // 2. Refactored CustomNode
   const CustomNode = useCallback((node) => {
-    const { id, data } = node;
+    const { id, type } = node;
+    // To integrate the warning logic from the original code into the refactored version, here's the complete solution:
 
-    // Extract unit operation type from id (e.g., 'cartridgefilter' from 'cartridgefilter_1')
+    // Extract unit operation type from id
     const unitopType = id.replace(/[\d_]+/g, "");
 
     // Get configuration for this unit operation type
     const config = UNITOP_CONFIG[unitopType];
 
-    // If no configuration found, return null
     if (!config) {
       console.warn(`No configuration found for unitop type: ${unitopType}`);
       return null;
     }
+
+    // ===== WARNING LOGIC FROM ORIGINAL CODE =====
+
+    // Get data from localStorage
+    const getUnitopDataDirect = (() => {
+      const data = localStorage.getItem(`unitop_${id}`);
+      return data ? JSON.parse(data) : null;
+    })();
+
+    const autoSizeDataFromStorage = (() => {
+      const data = localStorage.getItem("autoSizecalcultionValue");
+      return data ? JSON.parse(data) : [];
+    })();
+
+    const matchingItemFromStorage = autoSizeDataFromStorage?.find(
+      (item) => item?.id === id
+    );
+
+    const transactionData = (() => {
+      try {
+        const data = localStorage.getItem("transactionCPQData");
+        return data ? JSON.parse(data) : {};
+      } catch (e) {
+        console.error("Error parsing transactionCPQData:", e);
+        return {};
+      }
+    })();
+
+    const transactionKeys = Object.keys(transactionData);
+    const transactionKey =
+      transactionKeys.length > 0 ? transactionKeys[0] : null;
+    const transactionAllData = transactionKey
+      ? transactionData[transactionKey]
+      : [];
+
+    const configuredModelData = transactionAllData?.find(
+      (item) => item?.type === id
+    );
+
+    // Get data from refs
+    const getUnitopDataCache = cacheRef.current?.[id];
+    const matchingItemFromRef = autoSizeRef.current?.find(
+      (item) => item?.id === id
+    );
+
+    // Merge data sources
+    const getUnitopData = getUnitopDataDirect || getUnitopDataCache;
+    const matchingItem = matchingItemFromStorage || matchingItemFromRef;
+
+    const hasPayloadData =
+      configuredModelData?.payloadData &&
+      Object.keys(configuredModelData.payloadData).length > 0;
+
+    const currentModel = getUnitopData?.age;
+    const recommendedModel = matchingItem?.age;
+    const hasAutoSizeModel =
+      matchingItem?.age !== null && matchingItem?.age !== undefined;
+
+    // Check if no suitable model exists
+    const noSuitableModel =
+      matchingItem?.noSuitableModel === true ||
+      getUnitopData?.noSuitableModel === true;
+    const maxCapacity = matchingItem?.maxCapacity || getUnitopData?.maxCapacity;
+    const requiredOutput = matchingItem?.outputQtyCalculated;
+
+    const manuallyChanged = getUnitopData?.manuallyChanged === true;
+
+    const userSelectedFromAutoSizeStorage =
+      matchingItemFromStorage?.userSelectedModel === true;
+    const userSelectedFromAutoSizeRef =
+      matchingItemFromRef?.userSelectedModel === true;
+    const userSelectedFromUnitop = getUnitopData?.userSelectedModel === true;
+    const userSelectedFromTransaction =
+      configuredModelData?.userSelectedModel === true;
+
+    const userHasConfigured =
+      userSelectedFromAutoSizeStorage ||
+      userSelectedFromAutoSizeRef ||
+      userSelectedFromUnitop ||
+      userSelectedFromTransaction;
+
+    console.log(`[${id}] Warning check:`, {
+      currentModel,
+      recommendedModel,
+      hasAutoSizeModel,
+      hasPayloadData,
+      manuallyChanged,
+      userHasConfigured,
+      noSuitableModel,
+      maxCapacity,
+      requiredOutput,
+    });
+
+    // Determine warning type and message
+    let warningType = null;
+    let warningMessage = "";
+    let shouldShowWarning = false;
+
+    if (noSuitableModel) {
+      warningType = "error";
+      warningMessage = "There are no models that are rated for this flow rate";
+      shouldShowWarning = true;
+    } else if (
+      hasAutoSizeModel &&
+      recommendedModel &&
+      currentModel &&
+      (!userHasConfigured || manuallyChanged)
+    ) {
+      warningType = "warning";
+      warningMessage = "Configure recommended model";
+      shouldShowWarning = true;
+    }
+
+    console.log(`[${id}] Should show warning:`, shouldShowWarning, {
+      warningType,
+      warningMessage,
+    });
+
+    // ===== END WARNING LOGIC =====
 
     const checkUnitopExitsId = checkExitsLocalStorageValue(unitopType);
 
@@ -1683,11 +2701,6 @@ function Home({ UNITOP_CONFIG }) {
       width: "50px",
       display: "flex",
     });
-
-    // Determine warning state from node data or default values
-    const warningType = data?.warningType || null;
-    const warningMessage = data?.warningMessage || "";
-    const shouldShowWarning = data?.shouldShowWarning || false;
 
     // Get display value from localStorage or generate default
     const displayValue =
@@ -1739,106 +2752,612 @@ function Home({ UNITOP_CONFIG }) {
     [CustomNode]
   );
 
-const handleCloseOption = useCallback(() => {
-  setUnitopVisible(false);
-  setUnitopDetails(null);
-}, []);
-  console.log(c_anuj, id_anuj, node1, elements);
+  const handleCloseOption = useCallback(() => {
+    setUnitopVisible(false);
+    setUnitopDetails(null);
+  }, []);
+  const utKeys = {
+    anuj: "cartridge-filter",
+    stripper: "cip",
+    chemicaldosing: "chemical-feed",
+    dpump: "distribution-pump",
+    uvlight: "uv-light",
+    proflex: "proflex-nam",
+    zpak: "proflex-nam",
+  };
+  // Function to get recovery value for a given unitop ID
+  const getRecoveryForUnitop = (unitopId, targetOutput, qty = 1) => {
+    const extractUnitop = unitopId?.split("_")[0];
+    const getData = utKeys[extractUnitop];
+    const filterData = unitopJSONData?.find((item) =>
+      item.slug.includes(getData)
+    );
+
+    if (!filterData || !filterData.model || filterData.model.length === 0) {
+      return {
+        recovery: 1,
+        model: null,
+        hasAutoSize: false,
+        noSuitableModel: false,
+      };
+    }
+
+    const modelsWithAutoSize = filterData.model.filter(
+      (m) =>
+        m.auto_size !== null && m.auto_size !== undefined && m.auto_size !== ""
+    );
+
+    if (modelsWithAutoSize.length === 0) {
+      return {
+        recovery: 1,
+        model: null,
+        hasAutoSize: false,
+        noSuitableModel: false,
+      };
+    }
+
+    if (!targetOutput || targetOutput === 0) {
+      const firstModel = modelsWithAutoSize[0];
+      return {
+        recovery: firstModel?.recovery || 1,
+        model: firstModel,
+        hasAutoSize: true,
+        noSuitableModel: false,
+      };
+    }
+
+    // Find the maximum auto_size value
+    const maxAutoSize = Math.max(
+      ...modelsWithAutoSize.map((m) => Number(m.auto_size))
+    );
+
+    // Check if targetOutput exceeds maximum available capacity
+    if (targetOutput > maxAutoSize) {
+      return {
+        recovery: 1,
+        model: null,
+        hasAutoSize: true,
+        noSuitableModel: true,
+        maxCapacity: maxAutoSize,
+      };
+    }
+
+    const selectedModel = modelsWithAutoSize.find(
+      (m) => Number(m.auto_size) >= targetOutput
+    );
+
+    return {
+      recovery: selectedModel?.recovery || 1,
+      model: selectedModel || null,
+      hasAutoSize: !!selectedModel,
+      noSuitableModel: !selectedModel,
+    };
+  };
+
+  const handleAutoSizeBtn = () => {
+    const errors = [];
+    const currentState = JSON.parse(localStorage.getItem("currentFlowState"));
+    const connectedCount = currentState?.edges?.length ?? 0;
+    const elementsCount = (currentState?.elements?.length ?? 0) - 1;
+
+    if (currentState?.elements?.length > 1) {
+      if (
+        currentState?.elements.length !== 0 &&
+        connectedCount !== elementsCount
+      ) {
+        const err = [
+          "Unitops edges are not connected, Please connect before clicking auto size button",
+        ];
+        errors.push(...err);
+      }
+    }
+
+    if (errors.length > 0) {
+      setErrorModal(true);
+      setErrorModalDetails(errors);
+      return;
+    }
+
+    const targetOutputValue = Number(targetOutput) || 0;
+
+    setAutoSizeValue(targetOutputValue);
+    localStorage.setItem("target_output", JSON.stringify(targetOutputValue));
+    setAutoSizeUpdate(true);
+    localStorage.setItem("autoSizeUpdate", "true");
+
+    const existingAutoSizeData = JSON.parse(
+      localStorage.getItem("autoSizecalcultionValue") || "[]"
+    );
+
+    const calcArray = connectionOrderState.map((id, i) => {
+      const getUnitpDataFromKeyLocalStorage = JSON.parse(
+        localStorage.getItem(`unitop_${id}`) || "{}"
+      );
+
+      const existingItem = existingAutoSizeData.find((item) => item?.id === id);
+
+      return {
+        id: id,
+        output: i === connectionOrderState.length - 1 ? targetOutputValue : 0,
+        inflow: 0,
+        waste: 0,
+        recovery: getUnitpDataFromKeyLocalStorage?.recovery || 0,
+        qtyValue: getUnitpDataFromKeyLocalStorage?.qty || 1,
+        userSelectedModel: existingItem?.userSelectedModel || false,
+      };
+    });
+
+    for (let i = connectionOrderState.length - 1; i >= 0; i--) {
+      const unitopId = connectionOrderState[i];
+
+      const existingUnitopData = JSON.parse(
+        localStorage.getItem(`unitop_${unitopId}`) || "{}"
+      );
+
+      const transactionData = JSON.parse(
+        localStorage.getItem("transactionCPQData") || "{}"
+      );
+      const transactionKeys = Object.keys(transactionData);
+      const transactionKey =
+        transactionKeys.length > 0 ? transactionKeys[0] : null;
+      const transactionAllData = transactionKey
+        ? transactionData[transactionKey]
+        : [];
+
+      const configuredInCPQ = transactionAllData.find(
+        (item) => item?.type === unitopId
+      );
+      const hasPayloadData =
+        configuredInCPQ?.payloadData &&
+        Object.keys(configuredInCPQ.payloadData).length > 0;
+      // Check if user manually changed recovery
+      const userChangedRecovery =
+        existingUnitopData?.manuallyChangedRecovery || false;
+
+      const output = calcArray[i].output;
+      const qtyValue = calcArray[i].qtyValue;
+      const outputPerUnit = qtyValue > 0 ? output / qtyValue : output;
+
+      const recoveryValue = getRecoveryForUnitop(
+        connectionOrderState[i],
+        outputPerUnit,
+        qtyValue
+      );
+
+      // Use user's recovery if manually changed, otherwise use calculated
+      let recovery;
+      if (userChangedRecovery) {
+        const userRecovery = parseFloat(existingUnitopData?.recovery);
+        recovery =
+          !Number.isNaN(userRecovery) && userRecovery > 0
+            ? userRecovery / 100
+            : 1;
+      } else {
+        recovery = recoveryValue?.recovery || 1;
+      }
+      // const recovery = recoveryValue?.recovery || 1;
+      const inflow = output / recovery;
+      const waste = inflow - output;
+
+      const recoveryPercent = recovery * 100;
+
+      const hasRecommendedModel =
+        recoveryValue?.hasAutoSize && recoveryValue?.model;
+      const newRecommendedAge = recoveryValue?.model?.label;
+      const previousRecommendedAge =
+        existingUnitopData?.recommendedModel?.label;
+      const configuredAge = hasPayloadData
+        ? configuredInCPQ?.age
+        : existingUnitopData?.age;
+
+      const previousTargetOutput = Number(
+        localStorage.getItem("target_output") || 0
+      );
+      const targetOutputChanged = targetOutputValue !== previousTargetOutput;
+      const recommendationChanged =
+        newRecommendedAge && newRecommendedAge !== previousRecommendedAge;
+
+      let finalAge;
+      let finalUserSelectedFlag;
+
+      if (hasRecommendedModel) {
+        finalAge = newRecommendedAge;
+
+        const configuredMatchesRecommendation =
+          configuredAge === newRecommendedAge;
+
+        if (configuredMatchesRecommendation) {
+          finalUserSelectedFlag = true;
+          console.log(
+            `[${unitopId}] Configured model matches recommendation (${configuredAge}), no warning needed`
+          );
+        } else if (targetOutputChanged || recommendationChanged) {
+          finalUserSelectedFlag = false;
+          console.log(
+            `[${unitopId}] Mismatch: Configured=${configuredAge}, Recommended=${newRecommendedAge}, showing warning`
+          );
+        } else {
+          finalUserSelectedFlag =
+            existingUnitopData?.userSelectedModel || false;
+          console.log(
+            `[${unitopId}] No changes, keeping flag: ${finalUserSelectedFlag}`
+          );
+        }
+      } else {
+        finalAge = existingUnitopData.age || null;
+        finalUserSelectedFlag = existingUnitopData?.userSelectedModel || false;
+        console.log(`[${unitopId}] No recommendation, keeping: ${finalAge}`);
+      }
+
+      calcArray[i] = {
+        ...calcArray[i],
+        inflow,
+        waste,
+        outputQtyCalculated: outputPerUnit,
+        recovery: recoveryPercent,
+        age: finalAge,
+        userSelectedModel: finalUserSelectedFlag,
+        hasAutoSize: recoveryValue?.hasAutoSize,
+        configuredAge: configuredAge,
+        noSuitableModel: recoveryValue?.noSuitableModel || false,
+        maxCapacity: recoveryValue?.maxCapacity || null,
+      };
+
+      const updatedUnitopData = {
+        ...existingUnitopData,
+        age: finalAge,
+        qty: qtyValue,
+        recommendedModel: recoveryValue?.model,
+        hasAutoSize: recoveryValue?.hasAutoSize,
+        userSelectedModel: finalUserSelectedFlag,
+        manuallyChanged: false,
+        configuredAge: configuredAge,
+        noSuitableModel: recoveryValue?.noSuitableModel || false,
+        maxCapacity: recoveryValue?.maxCapacity || null,
+        payloadData:
+          existingUnitopData.payloadData || configuredInCPQ?.payloadData,
+        ...(hasPayloadData && {
+          ...configuredInCPQ,
+          age: finalAge,
+        }),
+      };
+
+      console.log(`[${unitopId}] Final update:`, {
+        hasPayloadData,
+        configuredAge,
+        previousRecommendedAge,
+        newRecommendedAge,
+        finalAge,
+        targetOutputChanged,
+        recommendationChanged,
+        userSelectedModel: finalUserSelectedFlag,
+        noSuitableModel: recoveryValue?.noSuitableModel,
+      });
+
+      localStorage.setItem(
+        `unitop_${unitopId}`,
+        JSON.stringify(updatedUnitopData)
+      );
+
+      if (i > 0) {
+        calcArray[i - 1].output = inflow;
+      }
+    }
+
+    localStorage.setItem("autoSizecalcultionValue", JSON.stringify(calcArray));
+    setAutoSizeCalculation(calcArray);
+
+    calcArray.forEach((item) => {
+      cacheRef.current[item.id] = JSON.parse(
+        localStorage.getItem(`unitop_${item.id}`)
+      );
+    });
+
+    autoSizeRef.current = calcArray;
+
+    setRefreshKey((prev) => prev + 1);
+    setTimeout(() => {
+      setRefreshKey((prev) => prev + 1);
+    }, 100);
+  };
+  const handleCloseErrorModal = () => {
+    setErrorModal(false);
+  };
+
+  console.log(autoSizeCalculation);
   return (
     <>
-      <div className="canvas-wrapper">
-        <div onClick={onElementClicksData} className="dndflow">
-          <ReactFlowProvider>
-            <div
-              className="reactflow-wrapper"
-              ref={reactFlowWrapper}
-              style={{ minHeight: height_canvas, minWidth: width_canvas }}
-            >
-              <div
-                style={{
-                  height: height_canvas,
-                  minHeight: height_canvas,
-                  minWidth: width_canvas,
-                }}
-              >
-                <ReactFlow
-                  nodes={elements} // changes to elements to nodes in version 11 @sudarsana
-                  edges={edges} // Added new property version 11 @sudarsana
-                  connectionRadius={100} // Added new Property version 11 @sudarsana
-                  onNodesChange={onNodesChange} // Added new property version 11 @sudarsana
-                  onEdgesChange={onEdgesChange} // Added new property version 11 @sudarsana
-                  onConnect={onConnect}
-                  // onConnect_new_PW={onConnect_new_PW}
-                  // onConnect_new_TC={onConnect_new_TC}
-                  deleteKeyCode={null} // @sudarsana backkey removed for deleting
-                  selectNodesOnDrag={false}
-                  onInit={setRfInstance} // Added new property version 11
-                  onEdgeContextMenu={onEdgeContextMenu}
-                  onEdgeMouseEnter={onEdgeMouseEnter}
-                  className="validationflow"
-                  nodeTypes={nodeTypes}
-                  edgeTypes={edgeTypes}
-                  onConnectStart={onConnectStart}
-                  onConnectStop={onConnectStop}
-                  onConnectEnd={onConnectEnd}
-                  onNodeClick={
-                    // onClickElements &&
-                    onElementClick
-                  } // Added onNodeClick updated name as onElementClick @sudarsana
-                  connectionLineType="step"
-                  onNodeDrag={onNodeDrag} // @sudarsana add for proximity connection
-                  onDrop={onDrop}
-                  onDragOver={onDragOver}
-                  onEdgeUpdate={onEdgeUpdate} // Added new property in version 11 @sudarsana
-                  snapToGrid // Added SnapTOGrid rin version @sudarsana
-                  snapGrid={[54, 54]} // @sudarsana changed values 54 and 54
-                  style={{ position: "absolute" }}
-                >
-                  <Background color="#aaa" gap={16} />
-                  {/* <DownloadFlowsheet
-                flowsheetImage={async (imageUrl) => {
-                  const success = await callImageAPI(imageUrl);
-                  if (!success) {
-                    setErrorModal(true);
-                    setErrorModalDetails(["Image upload to CPQ failed"]);
-                  }
-                }}
-                triggerDownload={triggerDownload}
-              /> */}
-                  {/* @sudarsana add for proximity connection */}
-                  {/* <Proximity /> */}
-                </ReactFlow>
-              </div>
-            </div>
-            <CustomControls />
-          </ReactFlowProvider>
-        </div>
-        <NotificationModal
-          options={modalOption}
-          handleClose={() => closeModelOption()}
+      <div className="sidebar-wrapper">
+        <Sidebar
+          clroAccess={false}
+          cpqData={JSON.parse(localStorage.getItem("cpq-data-key"))}
+          // products={products}
         />
       </div>
-      {unitopVisible && unitopDetails && (
-        <UnitopModalComponent
-          unitopVisible={unitopVisible}
-          handleCloseStripper={handleCloseOption}
-          unitopDetails={unitopDetails}
-          // disabledStripperAndExplorerTab={disabledStripperAndExplorerTab}
-          // translateObject={t}
-          flowIndex={flowIndex}
-          setFlowIndex={setFlowIndex}
-          // updateProductQty={updateProductQty}
-          // autoSizeValue={autoSizeValue}
-          // autoSizeConfiguredData={autoSizeConfiguredData}
-          // setAutoSizeConfiguredData={setAutoSizeConfiguredData}
-          // autoSizeUpdate={autoSizeUpdate}
-          // autoSizeCalculation={autoSizeCalculation}
-          unitopJSONData={unitopJSONData}
-          // updateAutoSizeCalculation={updateAutoSizeCalculation}
+
+      <div className="main-wrapper">
+        <div className="canvas-wrapper">
+          <div onClick={onElementClicksData} className="dndflow">
+            <ReactFlowProvider>
+              <div
+                className="reactflow-wrapper"
+                ref={reactFlowWrapper}
+                style={{ minHeight: height_canvas, minWidth: width_canvas }}
+              >
+                <div
+                  style={{
+                    height: height_canvas,
+                    minHeight: height_canvas,
+                    minWidth: width_canvas,
+                  }}
+                >
+                  <ReactFlow
+                    nodes={elements} // changes to elements to nodes in version 11 @sudarsana
+                    edges={edges} // Added new property version 11 @sudarsana
+                    connectionRadius={100} // Added new Property version 11 @sudarsana
+                    onNodesChange={onNodesChange} // Added new property version 11 @sudarsana
+                    onEdgesChange={onEdgesChange} // Added new property version 11 @sudarsana
+                    onConnect={onConnect}
+                    // onConnect_new_PW={onConnect_new_PW}
+                    // onConnect_new_TC={onConnect_new_TC}
+                    deleteKeyCode={null} // @sudarsana backkey removed for deleting
+                    selectNodesOnDrag={false}
+                    onInit={setRfInstance} // Added new property version 11
+                    onEdgeContextMenu={onEdgeContextMenu}
+                    onEdgeMouseEnter={onEdgeMouseEnter}
+                    className="validationflow"
+                    nodeTypes={nodeTypes}
+                    edgeTypes={edgeTypes}
+                    onConnectStart={onConnectStart}
+                    onConnectStop={onConnectStop}
+                    onConnectEnd={onConnectEnd}
+                    onNodeClick={
+                      // onClickElements &&
+                      onElementClick
+                    } // Added onNodeClick updated name as onElementClick @sudarsana
+                    connectionLineType="step"
+                    onNodeDrag={onNodeDrag} // @sudarsana add for proximity connection
+                    onDrop={onDrop}
+                    onDragOver={onDragOver}
+                    onEdgeUpdate={onEdgeUpdate} // Added new property in version 11 @sudarsana
+                    snapToGrid // Added SnapTOGrid rin version @sudarsana
+                    snapGrid={[54, 54]} // @sudarsana changed values 54 and 54
+                    style={{ position: "absolute" }}
+                  >
+                    <Background color="#aaa" gap={16} />
+                    <DownloadFlowsheet
+                      flowsheetImage={async (imageUrl) => {
+                        const success = await callImageAPI(imageUrl);
+                        console.log(success,imageUrl)
+                        if (!success) {
+                          setErrorModal(true);
+                          setErrorModalDetails(["Image upload to CPQ failed"]);
+                        }
+                      }}
+                      triggerDownload={triggerDownload}
+                    />
+                  </ReactFlow>
+                </div>
+              </div>
+              <CustomControls />
+            </ReactFlowProvider>
+          </div>
+          <NotificationModal
+            options={modalOption}
+            handleClose={() => closeModelOption()}
+          />
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            right: "90px",
+            top: "80px",
+            backgroundColor: "#ccc",
+            padding: "10px",
+            zIndex: 1000,
+          }}
+        >
+          <div>
+            <h4
+              style={{
+                fontSize: "18px",
+                display: "inline",
+                paddingBottom: "8px",
+              }}
+            >
+              Target Output
+            </h4>
+            <div>
+              <input
+                className="nodrag"
+                type="text"
+                id="auto-size"
+                // key={localValue}
+                style={{
+                  marginTop: "10px",
+                  // width: "100%",
+                  height: "12px",
+                  fontSize: "16px",
+                  border: "none",
+                  textAlign: "center",
+                  marginBottom: "10px",
+                  padding: "10px",
+                }}
+                autoComplete="off"
+                placeholder="Target Output"
+                onChange={(e) => {
+                  setTargetOutput(e.target.value);
+                }}
+                value={targetOutput}
+              />
+            </div>
+          </div>
+
+          {/* <div
+                          style={{
+                            display: "flex",
+                            margin: "10px 0",
+                            border: "2px solid black",
+                            borderRadius: "20px",
+                          }}
+                        >
+                          <Button
+                            className="add-data-to-cpq"
+                            style={{
+                              padding: "2px",
+                              color: "red",
+                              // border: "2px solid black",
+                              width: "100%",
+                              height: "25px",
+                              borderRadius: "20px",
+                              fontSize: "12px",
+                              outline: "none",
+                              border: "none",
+                              backgroundColor: `${defaultCalculation === "GPM" ? "yellow" : ""}`,
+                            }}
+                            data-testid="auto-size"
+                            aria-label="auto-size"
+                            // open custom folder on save start save_btn
+                            onClick={() => setDefaultCalculation("GPM")}
+                            size="large"
+                          >
+                            GPM
+                          </Button>
+                          <Button
+                            className="add-data-to-cpq"
+                            style={{
+                              padding: "2px",
+                              color: "red",
+                              // border: "2px solid black",
+                              width: "100%",
+                              height: "25px",
+                              borderRadius: "20px",
+                              fontSize: "12px",
+                              outline: "none",
+                              border: "none",
+                              backgroundColor: `${defaultCalculation === "m3/h" ? "yellow" : ""}`,
+                            }}
+                            data-testid="auto-size"
+                            aria-label="auto-size"
+                            // open custom folder on save start save_btn
+                            onClick={() => setDefaultCalculation("m3/h")}
+                            size="large"
+                          >
+                            m3/h
+                          </Button>
+                        </div> */}
+          {/* <Tooltip title="Auto Size" placement="bottom" arrow>
+                          <Button
+                            className="add-data-to-cpq"
+                            style={{
+                              padding: "2px",
+                              color: "red",
+                              border: "2px solid black",
+                              width: "100px",
+                              height: "25px",
+                              borderRadius: "20px",
+                              fontSize: "12px",
+                            }}
+                            data-testid="auto-size"
+                            aria-label="auto-size"
+                            // open custom folder on save start save_btn
+                            onClick={() => handleAutoSize()}
+                            size="large"
+                            disabled={autoSizeLoader}
+                          >
+                            {autoSizeLoader ? "Loading..." : "Auto Size"}
+                          </Button>
+                        </Tooltip> */}
+        </div>
+        {unitopVisible && unitopDetails && (
+          <UnitopModalComponent
+            unitopVisible={unitopVisible}
+            handleCloseStripper={handleCloseOption}
+            unitopDetails={unitopDetails}
+            // disabledStripperAndExplorerTab={disabledStripperAndExplorerTab}
+            // translateObject={t}
+            flowIndex={flowIndex}
+            setFlowIndex={setFlowIndex}
+            updateProductQty={updateProductQty}
+            autoSizeValue={autoSizeValue}
+            autoSizeConfiguredData={autoSizeConfiguredData}
+            setAutoSizeConfiguredData={setAutoSizeConfiguredData}
+            autoSizeUpdate={autoSizeUpdate}
+            autoSizeCalculation={autoSizeCalculation}
+            unitopJSONData={unitopJSONData}
+          />
+        )}
+      </div>
+      <MuiModal
+        hideBackdrop
+        open={cpqBtnLoader}
+        onClose={handleCloseOption}
+        aria-labelledby="child-modal-title"
+        aria-describedby="child-modal-description"
+        className="splitter-modal"
+      >
+        <Box>
+          <Rnd
+            default={{
+              x: window.innerWidth / 2 - (40 * (window.innerWidth / 100)) / 2,
+              y: window.innerHeight / 2 - (45 * (window.innerHeight / 100)) / 2,
+              width: "40%",
+            }}
+            enableResizing={{
+              bottom: false,
+              bottomLeft: false,
+              bottomRight: false,
+              left: true,
+              right: true,
+              top: false,
+              topLeft: false,
+              topRight: false,
+            }}
+            allowAnyClick
+            enableUserSelectHack={false}
+            resizeHandleStyles={{ right: { width: "5px" } }} // reducing width of right handle to 5px ---> kranthi
+            minWidth="25%"
+            cancel=".stripper-header-text, .normal-font, .diameter, .cf-input-props, #cbox, .MuiButton-contained"
+            className="stripper-box"
+          >
+            <Grid container className="stripper-grid-container">
+              <Grid item xs={12} className="stripper-header-grid">
+                <div className="stripper-header-text ft rufusBld no_drag S_heading">
+                  Adding to Quote
+                </div>
+              </Grid>
+            </Grid>
+            <div style={{ padding: "20px", fontSize: "18px" }}>
+              Your configuration is being processed by the Winflow canva
+              application. This could take up to a minute for large
+              configurations.
+            </div>
+            <h4 style={{ padding: "0 20px 10px" }}>
+              {addDataCurrentModel?.length ? "Adding " : ""}
+              {addDataCurrentModel}
+            </h4>
+            <div style={{ padding: "20px" }}>
+              <Loader />
+            </div>
+          </Rnd>
+        </Box>
+      </MuiModal>
+      {errorModal && (
+        <ErrorModal
+          errorModal={errorModal}
+          handleCloseModal={handleCloseErrorModal}
+          errorModalDetails={errorModalDetails}
         />
       )}
+      <div className="right-sidebar-wrapper">
+        <RightSidebar
+          onClick={handleAutoSizeBtn}
+          handleCPQIntegration={CPQIntegration}
+          cpqBtnLoader={cpqBtnLoader}
+        />
+      </div>
     </>
   );
 }
 
-export default Home;
+export default Flow;
