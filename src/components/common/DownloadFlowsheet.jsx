@@ -1,161 +1,157 @@
-/* eslint-disable max-len */
-/* eslint-disable no-console */
 import React, { useEffect } from "react";
-import { Panel, useReactFlow, getRectOfNodes } from "reactflow";
+import { Panel, useReactFlow, getNodesBounds } from "reactflow";
 import { toPng } from "html-to-image";
 
 function DownloadFlowsheet(props) {
   const { flowsheetImage, triggerDownload } = props;
   const { getNodes } = useReactFlow();
+  
   const onTheFlyStyle = (toTag = "input", withTag = "img", flag = true) => {
     document.querySelectorAll(".nodeimg").forEach((ele) => {
-      const imgEle = document.createElement(withTag);
-      if (ele.querySelector(toTag)) {
-        const closeTag = ele
-          .closest(".custom-node-element")
-          .querySelector(".unitop-close-icon-div");
-        if (closeTag) {
-          if (flag) {
-            closeTag.classList.add("hide-close");
-          } else {
-            closeTag.classList.remove("hide-close");
-          }
-        }
-        const errorTag = ele
-          .closest(".custom-node-element")
-          .querySelector(".unitop-error-icon-div");
-        if (errorTag) {
-          if (flag) {
-            errorTag.classList.add("hide-close");
-          } else {
-            errorTag.classList.remove("hide-close");
-          }
-        }
-        const parentRect = ele
-          .closest(".react-flow__nodes")
-          .querySelectorAll(".parent");
-        parentRect.forEach((parent) => {
-          if (flag) {
-            parent.classList.add("hide-close");
-          } else {
-            parent.classList.remove("hide-close");
-          }
-        });
-        Array.from(ele.querySelector(toTag).attributes).forEach(
-          ({ name, value }) => {
-            imgEle.setAttribute(name, value);
-          }
-        );
-        ele
-          .querySelector(toTag)
-          .parentNode.replaceChild(imgEle, ele.querySelector(toTag));
+      const targetElement = ele.querySelector(toTag);
+      if (!targetElement) return;
+
+      const customNode = ele.closest(".custom-node-element");
+      if (customNode) {
+        const closeIcon = customNode.querySelector(".unitop-close-icon-div");
+        const errorIcon = customNode.querySelector(".unitop-error-icon-div");
+        
+        if (closeIcon) closeIcon.classList.toggle("hide-close", flag);
+        if (errorIcon) errorIcon.classList.toggle("hide-close", flag);
       }
+
+      const reactFlowNodes = ele.closest(".react-flow__nodes");
+      if (reactFlowNodes) {
+        reactFlowNodes.querySelectorAll(".parent").forEach((parent) => {
+          parent.classList.toggle("hide-close", flag);
+        });
+      }
+
+      const replacementElement = document.createElement(withTag);
+      Array.from(targetElement.attributes).forEach(({ name, value }) => {
+        replacementElement.setAttribute(name, value);
+      });
+      targetElement.parentNode.replaceChild(replacementElement, targetElement);
     });
   };
-  // Helper function to calculate bounds for zig-zag layout
-  const calculateZigZagBounds = (nodes) => {
-    if (nodes.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
 
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-
-    nodes.forEach((node) => {
-      console.log(node);
-      const nodeWidth = node.width || 150;
-      const nodeHeight = node.height || 100;
-
-      minX = Math.min(minX, node.position.x);
-      minY = Math.min(minY, node.position.y);
-      maxX = Math.max(maxX, node.position.x + nodeWidth);
-      maxY = Math.max(maxY, node.position.y + nodeHeight);
-    });
-    console.log({
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
-    });
-    return {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
-    };
-  };
-  const onClick = async () => {
-    await document.fonts.ready; // Wait for fonts to load
-    const spaceAllLTRB = 20;
+ const onClick = async () => {
+  try {
+    await document.fonts.ready;
     const nodes = getNodes();
-    const nodeCount = nodes.length;
-
-    // Determine layout and calculate bounds accordingly
-    let nodesBounds;
-    if (nodeCount <= 3) {
-      nodesBounds = getRectOfNodes(nodes);
-    } else {
-      nodesBounds = calculateZigZagBounds(nodes);
+    
+    if (nodes.length === 0) {
+      console.warn('No nodes to capture');
+      return;
     }
 
+    const nodesBounds = getNodesBounds(nodes);
     onTheFlyStyle("input", "img", true);
 
-    const element = document.querySelector(
-      ".react-flow__viewport.react-flow__container"
-    );
-    const styleEle = element.style.transform;
-    const scale = styleEle.split("scale");
-    element.style.transform = `${scale[0]} scale(1)`;
+    const viewport = document.querySelector(".react-flow__viewport");
+    const renderer = document.querySelector(".react-flow__renderer");
+    const background = document.querySelector(".react-flow__background");
+    const edgesLayer = document.querySelector(".react-flow__edges");
+    
+    if (!viewport || !renderer) {
+      console.error('ReactFlow elements not found');
+      onTheFlyStyle("img", "input", false);
+      return;
+    }
 
-    const left = Number(styleEle.split("(")[1].split("px")[0]);
-    const top = Number(styleEle.split("(")[1].split(",")[1].split("px")[0]);
+    // Store original styles
+    const originalTransform = viewport.style.transform;
+    const originalWidth = renderer.style.width;
+    const originalHeight = renderer.style.height;
+    const originalOverflow = renderer.style.overflow;
+    const originalBgDisplay = background?.style.display;
 
-    // FIXED: Use actual content bounds for both width and height
-    const actualContentWidth = nodesBounds.width + spaceAllLTRB * 2;
-    const actualContentHeight = nodesBounds.height + spaceAllLTRB * 2;
+    // Hide background
+    if (background) background.style.display = 'none';
+    
+    // CRITICAL: Force all SVG paths to be visible and inline
+    if (edgesLayer) {
+      edgesLayer.style.opacity = '1';
+      edgesLayer.style.visibility = 'visible';
+      edgesLayer.style.display = 'block';
+      
+      // Force all paths to be visible
+      const allPaths = edgesLayer.querySelectorAll('path');
+      allPaths.forEach(path => {
+        path.style.opacity = '1';
+        path.style.visibility = 'visible';
+        path.style.display = 'block';
+        // Ensure stroke is visible
+        if (!path.getAttribute('stroke') || path.getAttribute('stroke') === 'none') {
+          path.setAttribute('stroke', '#bed6f0'); // Default edge color
+        }
+        if (!path.getAttribute('stroke-width')) {
+          path.setAttribute('stroke-width', '1');
+        }
+      });
+    }
 
-    // Set minimum dimensions for Word visibility
+    // Calculate dimensions
+    const padding = 100;
+    const nodeCount = nodes.length;
     const minWidth = nodeCount <= 3 ? 800 : 1200;
     const minHeight = nodeCount <= 3 ? 300 : 500;
+    
+    const captureWidth = Math.max(nodesBounds.width + padding * 2, minWidth);
+    const captureHeight = Math.max(nodesBounds.height + padding * 2, minHeight);
 
-    const captureWidth = Math.max(actualContentWidth, minWidth);
-    const captureHeight = Math.max(actualContentHeight, minHeight);
+    // Apply capture styles
+    renderer.style.width = `${captureWidth}px`;
+    renderer.style.height = `${captureHeight}px`;
+    renderer.style.overflow = 'visible';
+    renderer.style.position = 'relative';
+    viewport.style.transform = `translate(${-(nodesBounds.x - padding)}px, ${-(nodesBounds.y - padding)}px) scale(1)`;
 
-    // CRITICAL: Calculate centering offsets
-    const horizontalOffset = (captureWidth - actualContentWidth) / 2;
-    const verticalOffset = (captureHeight - actualContentHeight) / 2;
+    // Wait longer for SVG to render
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const imageUrl = await toPng(document.querySelector(".react-flow__pane"), {
-      backgroundColor: "#ffffff", // White background for Word
+    // Capture with specific SVG handling
+    const imageUrl = await toPng(renderer, {
+      backgroundColor: "#ffffff",
       width: captureWidth,
       height: captureHeight,
-      skipFonts: true,
       pixelRatio: 2,
-      quality: 1,
-      style: {
-        // CENTER the content by adding offsets
-        margin: `${-top + -(nodesBounds.y - spaceAllLTRB) + verticalOffset}px 0 0 ${-left - (nodesBounds.x - spaceAllLTRB) + horizontalOffset}px`,
-        transform: "scale(1)",
-        imageRendering: "crisp-edges",
+      cacheBust: true,
+      skipFonts: false,
+      includeQueryParams: true,
+      filter: (node) => {
+        // Include all nodes, especially SVG elements
+        return true;
       },
     });
 
+    // Restore original styles
+    viewport.style.transform = originalTransform;
+    renderer.style.width = originalWidth;
+    renderer.style.height = originalHeight;
+    renderer.style.overflow = originalOverflow;
+    renderer.style.position = '';
+    if (background) background.style.display = originalBgDisplay || '';
     onTheFlyStyle("img", "input", false);
-    element.style.transform = scale.join("scale");
 
     flowsheetImage(imageUrl);
-  };
+  } catch (error) {
+    console.error('Screenshot failed:', error);
+    onTheFlyStyle("img", "input", false);
+  }
+};
 
   useEffect(() => {
     if (triggerDownload) {
       onClick();
     }
   }, [triggerDownload]);
+
   return (
     <Panel position="top-left" style={{ display: "none" }}>
       <button
         type="button"
-        className="download-btn flowsheet "
+        className="download-btn flowsheet"
         onClick={onClick}
       >
         Download Image
@@ -163,4 +159,5 @@ function DownloadFlowsheet(props) {
     </Panel>
   );
 }
+
 export default DownloadFlowsheet;

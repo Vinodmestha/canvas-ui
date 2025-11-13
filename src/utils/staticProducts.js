@@ -5,7 +5,6 @@ export const staticProducts = [
   {
     id: "cartridgeFilter",
     name: "Cartridge Filter",
-    displayName: "Cartridge Filter",
     unitopType: "cartridgeFilter",
     prefix: "CF",
     imageUrl: CF_new,
@@ -18,12 +17,10 @@ export const staticProducts = [
       "packagedSystemFirmProposal",
       "channelPartnerChannelPartnerProposal",
     ],
-    storageKey: "cf-dict",
   },
   {
     id: "stripper",
     name: "Clean in Place (CIP)",
-    displayName: "CIP",
     unitopType: "CIP",
     prefix: "STR",
     imageUrl: stripperImage,
@@ -35,12 +32,10 @@ export const staticProducts = [
       "packagedSystemLevel1QualifierFullProposal",
       "packagedSystemFirmProposal",
     ],
-    storageKey: "stripper-dict",
   },
   {
     id: "chemicaldosing",
     name: "Chemical Feed",
-    displayName: "Chemical Feed",
     unitopType: "chemicalFeed",
     prefix: "Dose",
     imageUrl: Chemical_Dosing,
@@ -52,12 +47,10 @@ export const staticProducts = [
       "packagedSystemLevel1QualifierFullProposal",
       "packagedSystemFirmProposal",
     ],
-    storageKey: "dosing-dict",
   },
   {
     id: "dpump",
     name: "Distribution Pump",
-    displayName: "Distribution Pump",
     unitopType: "distributionPump",
     prefix: "DPUMP",
     imageUrl: CF_new,
@@ -69,12 +62,10 @@ export const staticProducts = [
       "packagedSystemLevel1QualifierFullProposal",
       "packagedSystemFirmProposal",
     ],
-    storageKey: "dpump-dict",
   },
   {
     id: "uvlight",
     name: "UV Light",
-    displayName: "UV Light",
     unitopType: "uvLight",
     prefix: "UV",
     imageUrl: uv,
@@ -86,7 +77,6 @@ export const staticProducts = [
       "packagedSystemLevel1QualifierFullProposal",
       "packagedSystemFirmProposal",
     ],
-    storageKey: "uv-dict",
   },
   // Add more products as needed
 ];
@@ -98,7 +88,7 @@ export const transformToUnitopConfig = (products) => {
       prefix: product.prefix,
       name: product.name,
       image: product.imageUrl,
-      storageKey: product.storageKey,
+      // storageKey: product.storageKey,
       // Store additional metadata
       category: product.category,
       regions: product.regions,

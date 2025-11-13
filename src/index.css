@@ -550,3 +550,46 @@ input[type="checkbox"] {
 .sign-up-mainpage .fymEUH.veolia-divider {
   /* padding: 0px 22px !important; */
 }
+.hide-close {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+
+/* edges svg css added here for ss */
+
+/* start */
+.react-flow__edges {
+  pointer-events: none;
+}
+
+.react-flow__edge path {
+  pointer-events: stroke;
+}
+
+.react-flow__renderer {
+  position: relative;
+}
+/* Match the first image - light blue-gray edges with smooth curves */
+.react-flow__edge path {
+  stroke: linear-gradient(45deg, lightblue, white) !important; /* Very light blue-gray */
+  stroke-width: 2 !important;
+  fill: none !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/* Keep consistent across all states */
+.react-flow__edge.selected path,
+.react-flow__edge:hover path,
+.react-flow__edge.animated path {
+  stroke: linear-gradient(45deg, lightblue, white) !important;
+  stroke-width: 2 !important;
+}
+
+.react-flow__connection-path,
+.react-flow__edge-path {
+  stroke: linear-gradient(45deg, lightblue, white) !important;
+  stroke-width: 2!important;
+}
+/* end */

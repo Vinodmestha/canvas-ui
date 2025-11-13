@@ -226,7 +226,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
 
     console.log(" Setting cache with keys:", Object.keys(newCache));
     setUnitopDataCache(newCache);
-  }, [refreshKey, connectionOrderState.length]); // Add length as dependency
+  }, [connectionOrderState.length]); // Add length as dependency
   useEffect(() => {
     cacheRef.current = unitopDataCache;
     setForceupdate((prev) => prev + 1);
@@ -272,7 +272,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
         getBorderColor(item?.type);
       });
     }
-  }, [transactionCPQDataNew]);
+  }, [transactionCPQDataNew, cpqData?.transactionId]);
   //  Updated mergeIntoTransaction
   const mergeIntoTransaction = useCallback(
     (cpqData, mode, id, setTransactionCPQDataNew, uData) => {
@@ -1548,7 +1548,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
         body: JSON.stringify(imagePayload),
       });
       const data = await response.json();
-      console.log(data,"res")
+      console.log(data, "res");
       if (data.statusCode === 200) {
         // redirect only on success
         window.top.postMessage(
@@ -1963,7 +1963,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
       const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const type = event.dataTransfer.getData("application/reactflow");
       const unitopType = event.dataTransfer.getData("application/unitoptype");
-console.log(unitopType)
+      console.log(unitopType);
       const position = rfInstance.project({
         x: event.clientX - reactFlowBounds.left - 30,
         y: event.clientY - reactFlowBounds.top - 20,
@@ -2001,7 +2001,7 @@ console.log(unitopType)
 
         // Get config for this unitop type
         const config = UNITOP_CONFIG[unitopType];
-        console.log(config,"config", unitopType)
+        console.log(config, "config", unitopType);
         if (!config) {
           console.error(
             `No configuration found for unitop type: ${unitopType}`
@@ -2204,7 +2204,7 @@ console.log(unitopType)
   // #### function for deletion of unitop ########
   const handleConfirm = (isClose = false, elem) => {
     const { type } = elem;
-    console.log(elem)
+    console.log(elem);
     // console.log(type, elem);
     let previousUnitsData = [];
     let item = type;
@@ -2553,177 +2553,182 @@ console.log(unitopType)
   };
 
   // 2. Refactored CustomNode
-  const CustomNode = useCallback((node) => {
-    const { id, type } = node;
-    // To integrate the warning logic from the original code into the refactored version, here's the complete solution:
+  const CustomNode = useCallback(
+    (node) => {
+      const { id, type } = node;
+      // To integrate the warning logic from the original code into the refactored version, here's the complete solution:
 
-    // Extract unit operation type from id
-    const unitopType = id.replace(/[\d_]+/g, "");
+      // Extract unit operation type from id
+      const unitopType = id.replace(/[\d_]+/g, "");
 
-    // Get configuration for this unit operation type
-    const config = UNITOP_CONFIG[unitopType];
+      // Get configuration for this unit operation type
+      const config = UNITOP_CONFIG[unitopType];
 
-    if (!config) {
-      console.warn(`No configuration found for unitop type: ${unitopType}`);
-      return null;
-    }
-// Force re-read from localStorage on each render
-  const getUnitopDataDirect = JSON.parse(
-    localStorage.getItem(`unitop_${id}`) || 'null'
-  );
-
-  const autoSizeDataFromStorage = JSON.parse(
-    localStorage.getItem("autoSizecalcultionValue") || '[]'
-  );
-
-  const matchingItemFromStorage = autoSizeDataFromStorage?.find(
-    (item) => item?.id === id
-  );
-    // ===== WARNING LOGIC FROM ORIGINAL CODE =====
-
-    const transactionData = (() => {
-      try {
-        const data = localStorage.getItem("transactionCPQData");
-        return data ? JSON.parse(data) : {};
-      } catch (e) {
-        console.error("Error parsing transactionCPQData:", e);
-        return {};
+      if (!config) {
+        console.warn(`No configuration found for unitop type: ${unitopType}`);
+        return null;
       }
-    })();
+      // Force re-read from localStorage on each render
+      const getUnitopDataDirect = JSON.parse(
+        localStorage.getItem(`unitop_${id}`) || "null"
+      );
 
-    const transactionKeys = Object.keys(transactionData);
-    const transactionKey =
-      transactionKeys.length > 0 ? transactionKeys[0] : null;
-    const transactionAllData = transactionKey
-      ? transactionData[transactionKey]
-      : [];
+      const autoSizeDataFromStorage = JSON.parse(
+        localStorage.getItem("autoSizecalcultionValue") || "[]"
+      );
 
-    const configuredModelData = transactionAllData?.find(
-      (item) => item?.type === id
-    );
+      const matchingItemFromStorage = autoSizeDataFromStorage?.find(
+        (item) => item?.id === id
+      );
+      // ===== WARNING LOGIC FROM ORIGINAL CODE =====
 
-    // Get data from refs
-    const getUnitopDataCache = cacheRef.current?.[id];
-    const matchingItemFromRef = autoSizeRef.current?.find(
-      (item) => item?.id === id
-    );
+      const transactionData = (() => {
+        try {
+          const data = localStorage.getItem("transactionCPQData");
+          return data ? JSON.parse(data) : {};
+        } catch (e) {
+          console.error("Error parsing transactionCPQData:", e);
+          return {};
+        }
+      })();
 
-    // Merge data sources
-    const getUnitopData = getUnitopDataDirect || getUnitopDataCache;
-    const matchingItem = matchingItemFromStorage || matchingItemFromRef;
+      const transactionKeys = Object.keys(transactionData);
+      const transactionKey =
+        transactionKeys.length > 0 ? transactionKeys[0] : null;
+      const transactionAllData = transactionKey
+        ? transactionData[transactionKey]
+        : [];
 
-    const hasPayloadData =
-      configuredModelData?.payloadData &&
-      Object.keys(configuredModelData.payloadData).length > 0;
+      const configuredModelData = transactionAllData?.find(
+        (item) => item?.type === id
+      );
 
-    const currentModel = getUnitopData?.age;
-    const recommendedModel = matchingItem?.age;
-    const hasAutoSizeModel =
-      matchingItem?.age !== null && matchingItem?.age !== undefined;
+      // Get data from refs
+      const getUnitopDataCache = cacheRef.current?.[id];
+      const matchingItemFromRef = autoSizeRef.current?.find(
+        (item) => item?.id === id
+      );
 
-    // Check if no suitable model exists
-    const noSuitableModel =
-      matchingItem?.noSuitableModel === true ||
-      getUnitopData?.noSuitableModel === true;
-    const maxCapacity = matchingItem?.maxCapacity || getUnitopData?.maxCapacity;
-    const requiredOutput = matchingItem?.outputQtyCalculated;
+      // Merge data sources
+      const getUnitopData = getUnitopDataDirect || getUnitopDataCache;
+      const matchingItem = matchingItemFromStorage || matchingItemFromRef;
 
-    const manuallyChanged = getUnitopData?.manuallyChanged === true;
+      const hasPayloadData =
+        configuredModelData?.payloadData &&
+        Object.keys(configuredModelData.payloadData).length > 0;
 
-    const userSelectedFromAutoSizeStorage =
-      matchingItemFromStorage?.userSelectedModel === true;
-    const userSelectedFromAutoSizeRef =
-      matchingItemFromRef?.userSelectedModel === true;
-    const userSelectedFromUnitop = getUnitopData?.userSelectedModel === true;
-    const userSelectedFromTransaction =
-      configuredModelData?.userSelectedModel === true;
+      const currentModel = getUnitopData?.age;
+      const recommendedModel = matchingItem?.age;
+      const hasAutoSizeModel =
+        matchingItem?.age !== null && matchingItem?.age !== undefined;
 
-    const userHasConfigured =
-      userSelectedFromAutoSizeStorage ||
-      userSelectedFromAutoSizeRef ||
-      userSelectedFromUnitop ||
-      userSelectedFromTransaction;
+      // Check if no suitable model exists
+      const noSuitableModel =
+        matchingItem?.noSuitableModel === true ||
+        getUnitopData?.noSuitableModel === true;
+      const maxCapacity =
+        matchingItem?.maxCapacity || getUnitopData?.maxCapacity;
+      const requiredOutput = matchingItem?.outputQtyCalculated;
 
-    console.log(`[${id}] Warning check:`, {
-      currentModel,
-      recommendedModel,
-      hasAutoSizeModel,
-      hasPayloadData,
-      manuallyChanged,
-      userHasConfigured,
-      noSuitableModel,
-      maxCapacity,
-      requiredOutput,
-    });
+      const manuallyChanged = getUnitopData?.manuallyChanged === true;
 
-    // Determine warning type and message
-    let warningType = null;
-    let warningMessage = "";
-    let shouldShowWarning = false;
+      const userSelectedFromAutoSizeStorage =
+        matchingItemFromStorage?.userSelectedModel === true;
+      const userSelectedFromAutoSizeRef =
+        matchingItemFromRef?.userSelectedModel === true;
+      const userSelectedFromUnitop = getUnitopData?.userSelectedModel === true;
+      const userSelectedFromTransaction =
+        configuredModelData?.userSelectedModel === true;
 
-    if (noSuitableModel) {
-      warningType = "error";
-      warningMessage = "There are no models that are rated for this flow rate";
-      shouldShowWarning = true;
-    } else if (
-      hasAutoSizeModel &&
-      recommendedModel &&
-      currentModel &&
-      (!userHasConfigured || manuallyChanged)
-    ) {
-      warningType = "warning";
-      warningMessage = "Configure recommended model";
-      shouldShowWarning = true;
-    }
+      const userHasConfigured =
+        userSelectedFromAutoSizeStorage ||
+        userSelectedFromAutoSizeRef ||
+        userSelectedFromUnitop ||
+        userSelectedFromTransaction;
 
-    console.log(`[${id}] Should show warning:`, shouldShowWarning, {
-      warningType,
-      warningMessage,
-    });
+      console.log(`[${id}] Warning check:`, {
+        currentModel,
+        recommendedModel,
+        hasAutoSizeModel,
+        hasPayloadData,
+        manuallyChanged,
+        userHasConfigured,
+        noSuitableModel,
+        maxCapacity,
+        requiredOutput,
+      });
 
-    // ===== END WARNING LOGIC =====
+      // Determine warning type and message
+      let warningType = null;
+      let warningMessage = "";
+      let shouldShowWarning = false;
 
-    const checkUnitopExitsId = checkExitsLocalStorageValue(unitopType);
+      if (noSuitableModel) {
+        warningType = "error";
+        warningMessage =
+          "There are no models that are rated for this flow rate";
+        shouldShowWarning = true;
+      } else if (
+        hasAutoSizeModel &&
+        recommendedModel &&
+        currentModel &&
+        (!userHasConfigured || manuallyChanged)
+      ) {
+        warningType = "warning";
+        warningMessage = "Configure recommended model";
+        shouldShowWarning = true;
+      }
 
-    // Apply styling
-    $(`.Node_${id}`).css({
-      width: "50px",
-      display: "flex",
-    });
+      console.log(`[${id}] Should show warning:`, shouldShowWarning, {
+        warningType,
+        warningMessage,
+      });
 
-    // Get display value from localStorage or generate default
-    const displayValue =
-      localStorage.getItem(id) || `${config.prefix}_${checkUnitopExitsId}`;
+      // ===== END WARNING LOGIC =====
 
-    console.log(`[${id}] Rendering unitop:`, {
-      unitopType,
-      config: config.name,
-      displayValue,
-      shouldShowWarning,
-      warningType,
-    });
+      const checkUnitopExitsId = checkExitsLocalStorageValue(unitopType);
 
-    // Return the unified UnitopComponent with configuration-based props
-    return (
-      <UnitopComponent
-        id={id}
-        checkUnitopExitsId={checkUnitopExitsId}
-        unitopName={config.name}
-        unitopType={unitopType}
-        displayValue={displayValue}
-        config={config}
-        node={node}
-        handleEnter={handleEnter}
-        deleteUnitTop={(e, node) => deleteUnitTop(e, node)}
-        warningType={warningType}
-        warningMessage={warningMessage}
-        shouldShowWarning={shouldShowWarning}
-        image={config.image}
-        hoverSource={hoverSource}
-        exithoverSource={exithoverSource}
-      />
-    );
-  }, [refreshKey]);
+      // Apply styling
+      $(`.Node_${id}`).css({
+        width: "50px",
+        display: "flex",
+      });
+
+      // Get display value from localStorage or generate default
+      const displayValue =
+        localStorage.getItem(id) || `${config.prefix}_${checkUnitopExitsId}`;
+
+      console.log(`[${id}] Rendering unitop:`, {
+        unitopType,
+        config: config.name,
+        displayValue,
+        shouldShowWarning,
+        warningType,
+      });
+
+      // Return the unified UnitopComponent with configuration-based props
+      return (
+        <UnitopComponent
+          id={id}
+          checkUnitopExitsId={checkUnitopExitsId}
+          unitopName={config.name}
+          unitopType={unitopType}
+          displayValue={displayValue}
+          config={config}
+          node={node}
+          handleEnter={handleEnter}
+          deleteUnitTop={(e, node) => deleteUnitTop(e, node)}
+          warningType={warningType}
+          warningMessage={warningMessage}
+          shouldShowWarning={shouldShowWarning}
+          image={config.image}
+          hoverSource={hoverSource}
+          exithoverSource={exithoverSource}
+        />
+      );
+    },
+    [refreshKey]
+  );
   // Added useMemo hook to avoid the re-render in version 11
   const nodeTypes = useMemo(
     () => ({
@@ -2737,8 +2742,8 @@ console.log(unitopType)
     setUnitopVisible(false);
     setUnitopDetails(null);
   }, []);
-  
-   const mapping = {
+
+  const mapping = {
     cartridgeFilter: "cartridgeFilter",
     distributionPump: "distributionPump",
     chemicalFeed: "chemicalFeed",
@@ -2753,7 +2758,7 @@ console.log(unitopType)
       item.slug.includes(getData)
     );
 
-    console.log(filterData, getData,extractUnitop)
+    console.log(filterData, getData, extractUnitop);
     if (!filterData || !filterData.model || filterData.model.length === 0) {
       return {
         recovery: 1,
@@ -2806,7 +2811,7 @@ console.log(unitopType)
     const selectedModel = modelsWithAutoSize.find(
       (m) => Number(m.auto_size) >= targetOutput
     );
-    console.log(selectedModel,"selectedModel")
+    console.log(selectedModel, "selectedModel");
 
     return {
       recovery: selectedModel?.recovery || 1,
@@ -2922,7 +2927,7 @@ console.log(unitopType)
       const waste = inflow - output;
 
       const recoveryPercent = recovery * 100;
-console.log(recoveryValue,"recoveryValue")
+      console.log(recoveryValue, "recoveryValue");
       const hasRecommendedModel =
         recoveryValue?.hasAutoSize && recoveryValue?.model;
       const newRecommendedAge = recoveryValue?.model?.label;
@@ -3110,7 +3115,7 @@ console.log(recoveryValue,"recoveryValue")
                     <DownloadFlowsheet
                       flowsheetImage={async (imageUrl) => {
                         const success = await callImageAPI(imageUrl);
-                        console.log(success,imageUrl)
+                        console.log(success, imageUrl);
                         if (!success) {
                           setErrorModal(true);
                           setErrorModalDetails(["Image upload to CPQ failed"]);
