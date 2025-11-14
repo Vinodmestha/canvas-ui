@@ -6,7 +6,7 @@ export const staticProducts = [
     id: "cartridgeFilter",
     name: "Cartridge Filter",
     unitopType: "cartridgeFilter",
-    prefix: "CF",
+    // prefix: "CF",
     imageUrl: CF_new,
     path: "/config/proGen/filtration/cartridgeFilter",
     modalKey: "cartridgeFilter_model", // adding in punching url
@@ -23,7 +23,7 @@ export const staticProducts = [
     id: "stripper",
     name: "Clean in Place (CIP)",
     unitopType: "CIP",
-    prefix: "STR",
+    // prefix: "STR",
     imageUrl: stripperImage,
     path: "/config/proGen/filtration/CIP",
     modalKey: "standard_model", // adding in punching url
@@ -91,7 +91,7 @@ export const transformToUnitopConfig = (products) => {
   return products.reduce((config, product) => {
     console.log(product);
     config[product.unitopType] = {
-      prefix: product.prefix,
+      // prefix: product.prefix,
       name: product.name,
       image: product.imageUrl,
       path: product.path,
@@ -211,7 +211,7 @@ export const createNodesFromCPQProducts = (
 
     const nodeId = `${unitopType}_${idNumber}`;
     const shortName = `${config.prefix}_${idNumber}`;
-    console.log(product, nodeId);
+    console.log(product, nodeId, shortName);
     const unitopStorageKey = `unitop_${nodeId}`;
     const unitopData = {
       age: product.configAttributes?.baseModelMap_allFamilies,
@@ -226,8 +226,6 @@ export const createNodesFromCPQProducts = (
 
     localStorage.setItem(unitopStorageKey, JSON.stringify(unitopData));
     // localStorage.setItem(nodeId, shortName);
-
-    console.log(` Created unitop: ${nodeId} -> ${shortName}`);
 
     const position = {
       x: startX + index * spacing,

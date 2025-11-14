@@ -108,7 +108,7 @@ function getScreenHeight() {
   const { innerHeight } = window;
   return innerHeight;
 }
-function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
+function Flow({ UNITOP_CONFIG }) {
   const initialElements = [];
   const initialEdges = [];
   // upgraded version 11 elements changes
@@ -2016,10 +2016,10 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
         }
 
         // Store in localStorage
-        localStorage.setItem(
-          `${unitopType}_${newId}`,
-          `${config.prefix}_${newId}`
-        );
+        // localStorage.setItem(
+        //   `${unitopType}_${newId}`,
+        //   `${config.prefix}_${newId}`
+        // );
         idArray.push(newId);
 
         // Create new node
@@ -2211,10 +2211,6 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
   const handleConfirm = (isClose = false, elem) => {
     const { type } = elem;
     console.log(elem);
-    // console.log(type, elem);
-    let previousUnitsData = [];
-    let item = type;
-    let identify_erd = "na";
     if (elem.id) {
       del_element_check = 0;
     }
@@ -2253,29 +2249,6 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
         res_source.map((item, index) => {
           delete connectionInfo[res_source[index][0]];
         });
-      if (elem.id.replace(/[\d_]+/g, "") == "roPump") {
-        const res_source_hppump = Object.entries(connectionInfo).filter(([k]) =>
-          k.includes(`hppump_${elem.id[elem.id.length - 1]}`)
-        );
-        if (res_source_hppump && res_source_hppump.length) {
-          // added by chandrashekhar 14-08-2024 because after deleteting ropump data has been retain in hppump start
-          const data = res_source_hppump[0][0].split(
-            res_source_hppump[0][1]
-          )[0];
-          removeLocalStorageRoOutputData([], elem, data);
-          // added by chandrashekhar 14-08-2024 because after deleteting ropump data has been retain in hppump end
-          res_source_hppump.map((item, index) => {
-            delete connectionInfo[res_source_hppump[index][0]];
-          });
-        }
-        const res_source_peltonwheel = Object.entries(connectionInfo).filter(
-          ([k]) => k.includes(`peltonwheel_${elem.id[elem.id.length - 1]}`)
-        );
-        if (res_source_peltonwheel)
-          res_source_peltonwheel.map((item, index) => {
-            delete connectionInfo[res_source_peltonwheel[index][0]];
-          });
-      }
       // Source
       let source_index = unitop_source.map((item, index) => {
         if (elem.id.replace(/[\d_]+/g, "") != "roPump") {
@@ -2384,10 +2357,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
         }
       }, 100);
     }
-    if (type === "customnode_feed") item = "feed";
-    if (type === "customnode_productOut") item = "ro";
     /*
-     * When open flowsheet exits Feed, Product, RO_HP
      * delete any one we have update the localstroage value
      * flow_dict, feed_flow_dict and product_flow_dict
      * If user delete the Feed we have update localStorage flow_dict and feed_flow_dict and
@@ -2575,6 +2545,7 @@ const isCalculatingAutosize = useRef(false);
 const CustomNode = useCallback(
   (node) => {
     const { id } = node;
+    console.log(id)
     const unitopType = id.replace(/[\d_]+/g, "");
     const config = UNITOP_CONFIG[unitopType];
 
@@ -3064,7 +3035,18 @@ const CustomNode = useCallback(
   const handleCloseErrorModal = () => {
     setErrorModal(false);
   };
-
+//    const cpq={
+//     "transactionId": "79021140",
+//     "region": "NAM",
+//     "salesOrg": "B701",
+//     "currency": "USD",
+//     "proposalType": "packagedSystemFirmProposal",
+//     "cpqDomain": "watertechnologiesdev",
+//     "uom": "Imperial",
+//     "frequency": "60Hz",
+//     "products": "{\"configuredProducts\":[]}",
+//     "source": "transaction"
+// }
   console.log(autoSizeCalculation);
   return (
     <>

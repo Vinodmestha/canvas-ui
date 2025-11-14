@@ -80,7 +80,7 @@ function UnitopComponent({
               className="nodrag"
               type="text"
               id={`anujText${id}`}
-              key={displayValue}
+              key={unitopName}
               style={{
                 marginTop: "-10px",
                 height: 10,
@@ -91,15 +91,15 @@ function UnitopComponent({
               autoComplete="off"
               onFocus={(e) => onMouseEnterNode(e, id)}
               onBlur={(e) => onBluerNode(e, id)}
-              placeholder={
-                localStorage.getItem(id)
-                  ? null
-                  : localStorage.setItem(id, displayValue)
-              }
-              onChange={(e) => {
-                localStorage.setItem(id, e.target.value);
-                localStorage.setItem("globalExitBtn", "true");
-              }}
+              // placeholder={
+              //   localStorage.getItem(id)
+              //     ? null
+              //     : localStorage.setItem(id, displayValue)
+              // }
+              // onChange={(e) => {
+              //   localStorage.setItem(id, e.target.value);
+              //   localStorage.setItem("globalExitBtn", "true");
+              // }}
               onKeyDown={handleEnter}
               onMouseOver={(e) => {
                 e.target.style.color = "#0679CC";
