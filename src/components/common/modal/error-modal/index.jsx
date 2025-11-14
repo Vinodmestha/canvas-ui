@@ -11,7 +11,7 @@ import {
   Tooltip,
   Modal,
 } from "@mui/material";
-// import { closeIconBlack } from "../../assets/images";
+import { closeIconBlack } from "../../../../assets/images";
 import "./stripper.scss";
 
 const ErrorModal = (props) => {
@@ -54,17 +54,17 @@ const ErrorModal = (props) => {
             handleClose={() => setModalOption(defaultModalOptions)}
           /> */}
           <Grid container className="stripper-grid-container">
-            <Grid item xs={12} className="stripper-header-grid">
-              <div className="stripper-header-text ft rufusBld no_drag S_heading">
+            <Grid item xs={12} className="stripper-header-grid" style={{background:"#eee",padding:"10px 10px 5px", borderBottom:"1px solid"}}>
+              <div className="stripper-header-text ft rufusBld no_drag S_heading" style={{fontSize:"18px", fontWeight:"bold"}}>
                 Failed to Add Data to CPQ
               </div>
               <div className="stripper-close-icon no_drag">
                 <Tooltip title="Close">
                   <img
-                    // src={closeIconBlack}
+                    src={closeIconBlack}
                     alt="close"
                     onClick={handleCloseModal}
-                    style={{ display: "block" }}
+                    style={{ display: "block", cursor:"pointer" }}
                     className="pointer"
                   />
                 </Tooltip>
@@ -73,10 +73,10 @@ const ErrorModal = (props) => {
           </Grid>
           <Grid item xs={12} >
             <div style={{height:"200px"}}>
-              <ul style={{padding:"10px 20px 10px "}}>
+              <ul>
                 {errorModalDetails?.map((item, i)=>{
                   return (
-                    <li key={i} style={{color:"red", height:"unset !important"}}>
+                    <li key={i} style={{color:"red", height:"unset !important", paddingBottom:"5px"}}>
                       {item}
                     </li>
                   );

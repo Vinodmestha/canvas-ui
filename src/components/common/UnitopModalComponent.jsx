@@ -37,9 +37,13 @@ const UnitopModalComponent = (props) => {
   };
   */
   const dataToPunchinUrlJSON =
-    "https://watertechnologiesdev.bigmachines.com/config/proGen/filtration/cartridgeFilter?_from_punchin=true&_has_jet_access=true&_variable_name_punchin=true&";
+    `https://watertechnologiesdev.bigmachines.com${props?.unitopDetails?.config?.path}?_from_punchin=true&_has_jet_access=true&_variable_name_punchin=true&`;
   const storageKey = `unitop_${props?.unitopDetails.id}`;
   const unitopType = props?.unitopDetails.id;
+
+  // adding in url model - key (cartridgeFilter_model)
+  const modelTypeKey = props?.unitopDetails?.config?.modalKey;
+
   const {
     unitopDetails,
     flowIndex,
@@ -393,7 +397,7 @@ const UnitopModalComponent = (props) => {
       // You can store your data with this new key if needed
       // localStorage.setItem(newKey, yourData);
       // Build the punch-in URL with the correct flowIndex
-      const prepareFinalPunchinUrl = `${dataToPunchinUrlJSON}cDSConfigId_allFamilies=${generatedConfigId}&cDSProductIndex_allFamilies=${flowIndex}&canvasQty_allFamilies=${quantitySelected}&transactionId_allFamilies=${transactionID}&region_allFamilies=${regionSelected}&salesOrg_allFamilies=${salesOrgSelected}&currency_allFamilies=${currencySelected}&frequency_family=${frequencySelected}&unitOfMeasure_Family=${unitOfMeasureSelected}&cartridgeFilter_model=${age}`;
+      const prepareFinalPunchinUrl = `${dataToPunchinUrlJSON}cDSConfigId_allFamilies=${generatedConfigId}&cDSProductIndex_allFamilies=${flowIndex}&canvasQty_allFamilies=${quantitySelected}&transactionId_allFamilies=${transactionID}&region_allFamilies=${regionSelected}&salesOrg_allFamilies=${salesOrgSelected}&currency_allFamilies=${currencySelected}&frequency_family=${frequencySelected}&unitOfMeasure_Family=${unitOfMeasureSelected}&${modelTypeKey}=${age}`;
       console.log(prepareFinalPunchinUrl);
       // Uncomment to navigate to the URL
       window.location.href = prepareFinalPunchinUrl;

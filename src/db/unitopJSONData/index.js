@@ -1564,6 +1564,7 @@ export const sidemenuIconGroups = [
         unitopType: "cartridgeFilter",
         src: CF_new,
         text: "Cartridge Filter",
+        path: "/config/proGen/filtration/cartridgeFilter",
         packagedSystemLevel1QualifierFullProposal: true,
         packagedSystemFirmProposal: true,
         bridgeAndEmergencyResponseFirmProposal: false,

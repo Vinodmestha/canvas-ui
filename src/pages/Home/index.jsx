@@ -41,28 +41,10 @@ import {
   getBorderColor,
 } from "../../utils";
 import { CustomEdge } from "../CustomEdge";
-import {
-  // settings,
-  // Feed,
-  // ProductOut,
-  // WasteOut,
-  // MixSplit,
-  // Pump,
-  // RO,
-  Chemical_Dosing,
-  CF_new,
-  uv,
-  // EDI,
-  stripperImage,
-  // optionsIcon,
-  // openIconColor,
-  // newIconColor,
-} from "../../assets/images";
 import NotificationModal from "../../components/common/modal";
 import UnitopComponent from "../../components/common/unitop/UnitopComponent";
 import {
   createNodesFromCPQProducts,
-  mapCPQProductToUnitopType,
 } from "../../utils/staticProducts";
 import UnitopModalComponent from "../../components/common/UnitopModalComponent";
 import { unitopJSONData } from "../../db/unitopJSONData";
@@ -200,7 +182,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
 
     // Make sure connectionOrderState exists and has items
     if (!connectionOrderState || connectionOrderState.length === 0) {
-      console.warn("⚠️ connectionOrderState is empty!");
+      console.warn(" connectionOrderState is empty!");
       return;
     }
 
@@ -226,7 +208,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
 
     console.log(" Setting cache with keys:", Object.keys(newCache));
     setUnitopDataCache(newCache);
-  }, [connectionOrderState.length]); // Add length as dependency
+  }, [refreshKey,connectionOrderState.length]); // Add length as dependency
   useEffect(() => {
     cacheRef.current = unitopDataCache;
     setForceupdate((prev) => prev + 1);
@@ -753,10 +735,12 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
 
   // 3. Keep your auto-edge creation effect as-is
   const firstRender = useRef(true);
+  const isAutoConnectEdgesFromCPQ = useRef(false); // Only auto-connect when loading from CPQ
 
   useEffect(() => {
     if (
       firstRender.current &&
+       isAutoConnectEdgesFromCPQ.current && // ← Only auto-connect when loading from CPQ
       elements.length > 1 &&
       edges.length === 0
       // configurationData?.configuredProducts?.length > 1
@@ -775,6 +759,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
       }
       setEdges(autoEdges);
       firstRender.current = false;
+      isAutoConnectEdgesFromCPQ.current = false; // Reset
     }
   }, [elements]);
 
@@ -822,7 +807,8 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
     }
 
     console.log("Restoring flow from CPQ data:", configurationData);
-
+// Set flag to enable auto-connection
+  isAutoConnectEdgesFromCPQ.current = true;
     // Create nodes and edges from CPQ products
     const { nodes, edges: cpqEdges } = createNodesFromCPQProducts(
       configurationData.configuredProducts,
@@ -870,6 +856,12 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
           flowState.elements.length > 0
         ) {
           console.log("Restoring from saved flow state");
+           // Check if this is CPQ data (has edges already)
+        if (flowState.edges && flowState.edges.length > 0) {
+          isAutoConnectEdgesFromCPQ.current = false; // Has edges, don't auto-connect
+        } else {
+          isAutoConnectEdgesFromCPQ.current = true; // No edges, allow auto-connect
+        }
           setElements(
             flowState.elements.map((el) => ({
               ...el,
@@ -1075,7 +1067,6 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
       const matchingConfigNode = nodesFromConfig.find((configNode) => {
         return configNode.id === existingNode.id;
       });
-
       if (matchingConfigNode) {
         mergedElements.push({
           ...matchingConfigNode,
@@ -1245,31 +1236,46 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
   // In CPQIntegration
 
   const clearAutoSizeWarnings = () => {
-    connectionOrderState.forEach((nodeId) => {
-      const unitopId = `unitop_${nodeId}`;
-      const existingData = JSON.parse(localStorage.getItem(unitopId) || "{}");
+  console.log('🧹 Clearing autosize warnings...');
+  
+  connectionOrderState.forEach((nodeId) => {
+    const unitopId = `unitop_${nodeId}`;
+    const existingData = JSON.parse(localStorage.getItem(unitopId) || '{}');
 
-      // Clear autosize-related data but keep user's configured model
-      const updatedData = {
-        ...existingData,
-        recommendedModel: null,
-        hasAutoSize: false,
-        // Keep userSelectedModel as is - don't change it
-      };
+    // Clear ALL autosize-related data
+    const updatedData = {
+      ...existingData,
+      recommendedModel: null,
+      hasAutoSize: false,
+      noSuitableModel: false,        
+      maxCapacity: null,            
+      configuredAge: existingData.age, // ← Keep current age as configured
+      // Keep userSelectedModel as is - don't change it
+    };
+    localStorage.setItem(unitopId, JSON.stringify(updatedData));
+    
+    // Also update the cache ref
+    if (cacheRef.current[nodeId]) {
+      cacheRef.current[nodeId] = updatedData;
+    }
+  });
 
-      localStorage.setItem(unitopId, JSON.stringify(updatedData));
-    });
+  // Clear autosize calculation
+  setAutoSizeCalculation([]);
+  localStorage.removeItem('autoSizecalcultionValue');
+  localStorage.removeItem('target_output');
+  localStorage.setItem('autoSizeUpdate', 'false');
+  setAutoSizeUpdate(false);
+  
+  // Clear the autoSizeRef
+  autoSizeRef.current = [];
 
-    // Clear autosize calculation
-    setAutoSizeCalculation([]);
-    localStorage.removeItem("autoSizecalcultionValue");
-    localStorage.removeItem("target_output");
-    localStorage.setItem("autoSizeUpdate", "false");
-    setAutoSizeUpdate(false);
+  console.log(' Autosize warnings cleared');
+  
+  // Refresh UI
+  setRefreshKey((prev) => prev + 1);
+};
 
-    // Refresh UI
-    setRefreshKey((prev) => prev + 1);
-  };
   const CPQIntegration = async () => {
     const errors = [];
     const transactionData = localStorage.getItem("cpq-data-key");
@@ -1590,7 +1596,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
       if (exists) return eds; // prevent duplicates
       return [...eds, createEdge(params, eds.length)]; // always custom type
     });
-    // @sudarsana (08/28/2024) when user deleting edge or unitops this logic is used to re-filling the entire connectionInfo dictionary
+    // @ (08/28/2024) when user deleting edge or unitops this logic is used to re-filling the entire connectionInfo dictionary
     if (Object.keys(connectionInfo).length === 0) {
       const edges = rfInstance?.toObject()?.edges ?? [];
       edges.forEach((edge) => {
@@ -1807,7 +1813,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
             newConnection.targetHandle ||
           newConnection.target.replace(/[\d_]+/g, "") == "mixsplit"
         ) {
-          // @sudarsana invalidConnection in flexible edges in version 11
+          // @ invalidConnection in flexible edges in version 11
           let finaldata = false;
           if (newConnection.source === newConnection.target) {
             finaldata = true;
@@ -1860,12 +1866,12 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
           }
           connectionInfo[oldEdge.source + oldEdge.sourceHandle] =
             oldEdge.sourceHandle; // by Sudarsana for proximity connection
-          // @sudarsana mixsplit validation condition  in flexiable edges in version 11
+          // @ mixsplit validation condition  in flexiable edges in version 11
           if (newConnection.target.replace(/[\d_]+/g, "") !== "mixsplit") {
             connectionInfo[newConnection.target + newConnection.targetHandle] =
               newConnection.targetHandle;
           }
-          // @sudarsana added here for connection not working in update edge
+          // @ added here for connection not working in update edge
           updateconnectionsource =
             newConnection.source + newConnection.sourceHandle;
           updateconnectionInfoDelete = true;
@@ -2036,7 +2042,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
     [rfInstance]
   );
 
-  // Added useCallback hook in version 11 @sudarsana
+  // Added useCallback hook in version 11 @
   const onDragOver = useCallback((event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
@@ -2238,7 +2244,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
     }
     // #### if unitop deletion #######
     else {
-      // @sudarsana here exiting code commented because issue is happing on connection between in hppump and pump
+      // @ here exiting code commented because issue is happing on connection between in hppump and pump
       // so we removed inculde statement and maked as "==="
       const res_source = Object.entries(connectionInfo).filter(([k]) => {
         return k.slice(0, -1) === elem.id;
@@ -2273,7 +2279,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
       // Source
       let source_index = unitop_source.map((item, index) => {
         if (elem.id.replace(/[\d_]+/g, "") != "roPump") {
-          // @sudarsana commeted this "item.includes(elem.id)" added in this if condtion  "item.slice(0, -1) === (elem.id)"
+          // @ commeted this "item.includes(elem.id)" added in this if condtion  "item.slice(0, -1) === (elem.id)"
           if (item.slice(0, -1) === elem.id) return index;
           else return -1;
         } else {
@@ -2399,12 +2405,12 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
           node1.splice(i, 1);
         }
       }
-      // @sudarsana added here to solve the update edge issue connection after deleting
+      // @ added here to solve the update edge issue connection after deleting
       if (updateconnectionInfoDelete) {
         delete connectionInfo[updateconnectionsource];
         updateconnectionInfoDelete = false;
       }
-      // deleting the element and edge in version 11 code @sudarsana
+      // deleting the element and edge in version 11 code @
       setElements((nds) => {
         const updatedElements = nds.filter((node) => node.id !== elem.id);
         // start --> here we written the logic for delection of unitops for all and again drag new unitops connection that stream number should start from '1'
@@ -2481,11 +2487,11 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
       );
       // }
     }
-    // @sudarsana this logic is main important for after deleting the unitops make sure stremNum_dict is empty
+    // @ this logic is main important for after deleting the unitops make sure stremNum_dict is empty
     if (!elem.id.includes("reactflow__edge")) {
       setTimeout(() => {
         localStorage.setItem("streamNum_dict", JSON.stringify({}));
-        // @sudarsana (08/28/2024) here added connectionInfo empty for logic after deletion make it as a empty
+        // @ (08/28/2024) here added connectionInfo empty for logic after deletion make it as a empty
         // again this connectionInfo re-filling On Drop and onConnection Functions
         connectionInfo = {};
         if (
@@ -2552,161 +2558,81 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
     updateControlsButtonTitle();
   };
 
+  const handleCloseOption = useCallback(() => {
+    setUnitopVisible(false);
+    setUnitopDetails(null);
+  }, []);
+//  Add a flag to block rendering during calculation:
+const isCalculatingAutosize = useRef(false);
+
+//  No warnings without active autosize
+//  No warnings without recoveryValue
+//  Warnings clear after clearAutoSizeWarnings()
+//  No stale warnings from old data
+//  Warnings only show when autosize is actually running
+// The key is the hasRecoveryValue check that combines all three conditions to determine if valid autosize data exist
   // 2. Refactored CustomNode
-  const CustomNode = useCallback(
-    (node) => {
-      const { id, type } = node;
-      // To integrate the warning logic from the original code into the refactored version, here's the complete solution:
+const CustomNode = useCallback(
+  (node) => {
+    const { id } = node;
+    const unitopType = id.replace(/[\d_]+/g, "");
+    const config = UNITOP_CONFIG[unitopType];
 
-      // Extract unit operation type from id
-      const unitopType = id.replace(/[\d_]+/g, "");
+    if (!config) {
+      console.warn(`No configuration found for unitop type: ${unitopType}`);
+      return null;
+    }
 
-      // Get configuration for this unit operation type
-      const config = UNITOP_CONFIG[unitopType];
+    const autoSizeActive = localStorage.getItem('autoSizeUpdate') === 'true';
+    
+    const getUnitopDataDirect = JSON.parse(
+      localStorage.getItem(`unitop_${id}`) || "null"
+    );
+    const getUnitopDataCache = cacheRef.current?.[id];
+    const getUnitopData = getUnitopDataDirect || getUnitopDataCache;
 
-      if (!config) {
-        console.warn(`No configuration found for unitop type: ${unitopType}`);
-        return null;
-      }
-      // Force re-read from localStorage on each render
-      const getUnitopDataDirect = JSON.parse(
-        localStorage.getItem(`unitop_${id}`) || "null"
-      );
+    const autoSizeDataFromStorage = JSON.parse(
+      localStorage.getItem("autoSizecalcultionValue") || "[]"
+    );
+    const matchingItemFromStorage = autoSizeDataFromStorage?.find(
+      (item) => item?.id === id
+    );
+    const matchingItemFromRef = autoSizeRef.current?.find(
+      (item) => item?.id === id
+    );
+    const matchingItem = matchingItemFromStorage || matchingItemFromRef;
 
-      const autoSizeDataFromStorage = JSON.parse(
-        localStorage.getItem("autoSizecalcultionValue") || "[]"
-      );
+    const transactionData = JSON.parse(
+      localStorage.getItem("transactionCPQData") || "{}"
+    );
+    const transactionKey = Object.keys(transactionData)[0];
+    const configuredModelData = transactionData[transactionKey]?.find(
+      (item) => item?.type === id
+    );
+    const hasPayloadData =
+      configuredModelData?.payloadData &&
+      Object.keys(configuredModelData.payloadData).length > 0;
 
-      const matchingItemFromStorage = autoSizeDataFromStorage?.find(
-        (item) => item?.id === id
-      );
-      // ===== WARNING LOGIC FROM ORIGINAL CODE =====
+    const hasRecoveryValue = 
+      autoSizeActive &&
+      getUnitopData?.hasAutoSize === true &&
+      matchingItem &&
+      Object.keys(matchingItem).length > 0;
 
-      const transactionData = (() => {
-        try {
-          const data = localStorage.getItem("transactionCPQData");
-          return data ? JSON.parse(data) : {};
-        } catch (e) {
-          console.error("Error parsing transactionCPQData:", e);
-          return {};
-        }
-      })();
+    console.log(`[${id}] Recovery check:`, {
+      autoSizeActive,
+      unitopHasAutoSize: getUnitopData?.hasAutoSize,
+      hasMatchingItem: !!matchingItem,
+      hasRecoveryValue
+    });
 
-      const transactionKeys = Object.keys(transactionData);
-      const transactionKey =
-        transactionKeys.length > 0 ? transactionKeys[0] : null;
-      const transactionAllData = transactionKey
-        ? transactionData[transactionKey]
-        : [];
-
-      const configuredModelData = transactionAllData?.find(
-        (item) => item?.type === id
-      );
-
-      // Get data from refs
-      const getUnitopDataCache = cacheRef.current?.[id];
-      const matchingItemFromRef = autoSizeRef.current?.find(
-        (item) => item?.id === id
-      );
-
-      // Merge data sources
-      const getUnitopData = getUnitopDataDirect || getUnitopDataCache;
-      const matchingItem = matchingItemFromStorage || matchingItemFromRef;
-
-      const hasPayloadData =
-        configuredModelData?.payloadData &&
-        Object.keys(configuredModelData.payloadData).length > 0;
-
-      const currentModel = getUnitopData?.age;
-      const recommendedModel = matchingItem?.age;
-      const hasAutoSizeModel =
-        matchingItem?.age !== null && matchingItem?.age !== undefined;
-
-      // Check if no suitable model exists
-      const noSuitableModel =
-        matchingItem?.noSuitableModel === true ||
-        getUnitopData?.noSuitableModel === true;
-      const maxCapacity =
-        matchingItem?.maxCapacity || getUnitopData?.maxCapacity;
-      const requiredOutput = matchingItem?.outputQtyCalculated;
-
-      const manuallyChanged = getUnitopData?.manuallyChanged === true;
-
-      const userSelectedFromAutoSizeStorage =
-        matchingItemFromStorage?.userSelectedModel === true;
-      const userSelectedFromAutoSizeRef =
-        matchingItemFromRef?.userSelectedModel === true;
-      const userSelectedFromUnitop = getUnitopData?.userSelectedModel === true;
-      const userSelectedFromTransaction =
-        configuredModelData?.userSelectedModel === true;
-
-      const userHasConfigured =
-        userSelectedFromAutoSizeStorage ||
-        userSelectedFromAutoSizeRef ||
-        userSelectedFromUnitop ||
-        userSelectedFromTransaction;
-
-      console.log(`[${id}] Warning check:`, {
-        currentModel,
-        recommendedModel,
-        hasAutoSizeModel,
-        hasPayloadData,
-        manuallyChanged,
-        userHasConfigured,
-        noSuitableModel,
-        maxCapacity,
-        requiredOutput,
-      });
-
-      // Determine warning type and message
-      let warningType = null;
-      let warningMessage = "";
-      let shouldShowWarning = false;
-
-      if (noSuitableModel) {
-        warningType = "error";
-        warningMessage =
-          "There are no models that are rated for this flow rate";
-        shouldShowWarning = true;
-      } else if (
-        hasAutoSizeModel &&
-        recommendedModel &&
-        currentModel &&
-        (!userHasConfigured || manuallyChanged)
-      ) {
-        warningType = "warning";
-        warningMessage = "Configure recommended model";
-        shouldShowWarning = true;
-      }
-
-      console.log(`[${id}] Should show warning:`, shouldShowWarning, {
-        warningType,
-        warningMessage,
-      });
-
-      // ===== END WARNING LOGIC =====
-
+    if (!hasRecoveryValue) {
+      console.log(`[${id}] No recoveryValue, skipping warnings`);
+      
       const checkUnitopExitsId = checkExitsLocalStorageValue(unitopType);
+      const displayValue = localStorage.getItem(id) || `${config.prefix}_${checkUnitopExitsId}`;
+      $(`.Node_${id}`).css({ width: "50px", display: "flex" });
 
-      // Apply styling
-      $(`.Node_${id}`).css({
-        width: "50px",
-        display: "flex",
-      });
-
-      // Get display value from localStorage or generate default
-      const displayValue =
-        localStorage.getItem(id) || `${config.prefix}_${checkUnitopExitsId}`;
-
-      console.log(`[${id}] Rendering unitop:`, {
-        unitopType,
-        config: config.name,
-        displayValue,
-        shouldShowWarning,
-        warningType,
-      });
-
-      // Return the unified UnitopComponent with configuration-based props
       return (
         <UnitopComponent
           id={id}
@@ -2718,30 +2644,106 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
           node={node}
           handleEnter={handleEnter}
           deleteUnitTop={(e, node) => deleteUnitTop(e, node)}
-          warningType={warningType}
-          warningMessage={warningMessage}
-          shouldShowWarning={shouldShowWarning}
+          warningType={null}
+          warningMessage=""
+          shouldShowWarning={false}
           image={config.image}
           hoverSource={hoverSource}
           exithoverSource={exithoverSource}
         />
       );
-    },
-    [refreshKey]
-  );
+    }
+
+    // ===== FIX: Check if configured model matches recommendation =====
+    const recommendedModel = matchingItem?.age;
+    const configuredAge = hasPayloadData 
+      ? configuredModelData?.age 
+      : getUnitopData?.age;
+    
+    // User has configured if:
+    // 1. They have payload data (configured in CPQ)
+    // 2. AND the configured model matches the current recommendation
+    const configuredMatchesRecommendation = 
+      configuredAge === recommendedModel;
+    
+    const userHasConfigured = 
+      hasPayloadData && configuredMatchesRecommendation;
+    
+    console.log(`[${id}] Configuration check:`, {
+      recommendedModel,
+      configuredAge,
+      hasPayloadData,
+      configuredMatchesRecommendation,
+      userHasConfigured
+    });
+    // ===== END FIX =====
+
+    const noSuitableModel =
+      matchingItem?.noSuitableModel === true ||
+      getUnitopData?.noSuitableModel === true;
+    
+    const hasAutoSizeModel =
+      matchingItem?.age !== null && matchingItem?.age !== undefined;
+
+    let warningType = null;
+    let warningMessage = "";
+    let shouldShowWarning = false;
+
+    if (noSuitableModel) {
+      warningType = "error";
+      warningMessage = "There are no models that are rated for this flow rate";
+      shouldShowWarning = true;
+    } else if (hasAutoSizeModel && recommendedModel && !userHasConfigured) {
+      warningType = "warning";
+      warningMessage = "Configure recommended model";
+      shouldShowWarning = true;
+    }
+
+    console.log(`[${id}] Warning decision:`, {
+      hasRecoveryValue,
+      noSuitableModel,
+      hasAutoSizeModel,
+      userHasConfigured,
+      shouldShowWarning,
+      warningType
+    });
+
+    const checkUnitopExitsId = checkExitsLocalStorageValue(unitopType);
+    const displayValue = localStorage.getItem(id) || `${config.prefix}_${checkUnitopExitsId}`;
+    $(`.Node_${id}`).css({ width: "50px", display: "flex" });
+
+    return (
+      <UnitopComponent
+        id={id}
+        checkUnitopExitsId={checkUnitopExitsId}
+        unitopName={config.name}
+        unitopType={unitopType}
+        displayValue={displayValue}
+        config={config}
+        node={node}
+        handleEnter={handleEnter}
+        deleteUnitTop={(e, node) => deleteUnitTop(e, node)}
+        warningType={warningType}
+        warningMessage={warningMessage}
+        shouldShowWarning={shouldShowWarning}
+        image={config.image}
+        hoverSource={hoverSource}
+        exithoverSource={exithoverSource}
+      />
+    );
+  },
+  [refreshKey]
+);
+
+
   // Added useMemo hook to avoid the re-render in version 11
   const nodeTypes = useMemo(
     () => ({
-      // vinod added ancillary inline
+      // for all unitops
       customnode_unitops: CustomNode,
     }),
     [CustomNode]
   );
-
-  const handleCloseOption = useCallback(() => {
-    setUnitopVisible(false);
-    setUnitopDetails(null);
-  }, []);
 
   const mapping = {
     cartridgeFilter: "cartridgeFilter",
@@ -2822,6 +2824,7 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
   };
 
   const handleAutoSizeBtn = () => {
+     isCalculatingAutosize.current = true;
     const errors = [];
     const currentState = JSON.parse(localStorage.getItem("currentFlowState"));
     const connectedCount = currentState?.edges?.length ?? 0;
@@ -2849,7 +2852,6 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
 
     setAutoSizeValue(targetOutputValue);
     localStorage.setItem("target_output", JSON.stringify(targetOutputValue));
-    setAutoSizeUpdate(true);
     localStorage.setItem("autoSizeUpdate", "true");
 
     const existingAutoSizeData = JSON.parse(
@@ -2946,34 +2948,42 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
 
       let finalAge;
       let finalUserSelectedFlag;
-
       if (hasRecommendedModel) {
         finalAge = newRecommendedAge;
 
         const configuredMatchesRecommendation =
           configuredAge === newRecommendedAge;
 
-        if (configuredMatchesRecommendation) {
+        // Check if user has already configured this model in CPQ
+        const userHasConfiguredInCPQ = hasPayloadData && configuredAge;
+
+        if (userHasConfiguredInCPQ && configuredMatchesRecommendation) {
+          // User configured and it matches recommendation - keep userSelected true
           finalUserSelectedFlag = true;
           console.log(
-            `[${unitopId}] Configured model matches recommendation (${configuredAge}), no warning needed`
+            `[${unitopId}] User already configured matching model, no warning`
           );
-        } else if (targetOutputChanged || recommendationChanged) {
+        } else if (userHasConfiguredInCPQ && !configuredMatchesRecommendation) {
+          // User configured but recommendation changed - show warning
           finalUserSelectedFlag = false;
           console.log(
-            `[${unitopId}] Mismatch: Configured=${configuredAge}, Recommended=${newRecommendedAge}, showing warning`
+            `[${unitopId}] Recommendation changed after user config, show warning`
           );
+        } else if (targetOutputChanged || recommendationChanged) {
+          // Target output or recommendation changed - show warning
+          finalUserSelectedFlag = false;
+          console.log(`[${unitopId}] Parameters changed, show warning`);
         } else {
+          // Preserve existing state
           finalUserSelectedFlag =
             existingUnitopData?.userSelectedModel || false;
           console.log(
-            `[${unitopId}] No changes, keeping flag: ${finalUserSelectedFlag}`
+            `[${unitopId}] No changes, preserve state: ${finalUserSelectedFlag}`
           );
         }
       } else {
         finalAge = existingUnitopData.age || null;
         finalUserSelectedFlag = existingUnitopData?.userSelectedModel || false;
-        console.log(`[${unitopId}] No recommendation, keeping: ${finalAge}`);
       }
 
       calcArray[i] = {
@@ -3031,21 +3041,25 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
       }
     }
 
-    localStorage.setItem("autoSizecalcultionValue", JSON.stringify(calcArray));
-    setAutoSizeCalculation(calcArray);
+  // Update all state and storage
+  localStorage.setItem("autoSizecalcultionValue", JSON.stringify(calcArray));
+  setAutoSizeCalculation(calcArray);
 
-    calcArray.forEach((item) => {
-      cacheRef.current[item.id] = JSON.parse(
-        localStorage.getItem(`unitop_${item.id}`)
-      );
-    });
+  calcArray.forEach((item) => {
+    cacheRef.current[item.id] = JSON.parse(
+      localStorage.getItem(`unitop_${item.id}`)
+    );
+  });
 
-    autoSizeRef.current = calcArray;
+  autoSizeRef.current = calcArray;
 
+  // ===== NOW update state and trigger re-render =====
+  setAutoSizeUpdate(true);  
+   // Use setTimeout to ensure all state updates are flushed
+  setTimeout(() => {
+    isCalculatingAutosize.current = false;
     setRefreshKey((prev) => prev + 1);
-    // setTimeout(() => {
-    //   setRefreshKey((prev) => prev + 1);
-    // }, 100);
+  }, 0);
   };
   const handleCloseErrorModal = () => {
     setErrorModal(false);
@@ -3079,15 +3093,13 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
                   }}
                 >
                   <ReactFlow
-                    nodes={elements} // changes to elements to nodes in version 11 @sudarsana
-                    edges={edges} // Added new property version 11 @sudarsana
-                    connectionRadius={100} // Added new Property version 11 @sudarsana
-                    onNodesChange={onNodesChange} // Added new property version 11 @sudarsana
-                    onEdgesChange={onEdgesChange} // Added new property version 11 @sudarsana
+                    nodes={elements} // changes to elements to nodes in version 11 @
+                    edges={edges} // Added new property version 11 @
+                    connectionRadius={100} // Added new Property version 11 @
+                    onNodesChange={onNodesChange} // Added new property version 11 @
+                    onEdgesChange={onEdgesChange} // Added new property version 11 @
                     onConnect={onConnect}
-                    // onConnect_new_PW={onConnect_new_PW}
-                    // onConnect_new_TC={onConnect_new_TC}
-                    deleteKeyCode={null} // @sudarsana backkey removed for deleting
+                    deleteKeyCode={null} // @ backkey removed for deleting
                     selectNodesOnDrag={false}
                     onInit={setRfInstance} // Added new property version 11
                     onEdgeContextMenu={onEdgeContextMenu}
@@ -3101,14 +3113,14 @@ function Flow({ UNITOP_CONFIG, setAutoSizeHandler }) {
                     onNodeClick={
                       // onClickElements &&
                       onElementClick
-                    } // Added onNodeClick updated name as onElementClick @sudarsana
+                    } // Added onNodeClick updated name as onElementClick @
                     connectionLineType="step"
-                    onNodeDrag={onNodeDrag} // @sudarsana add for proximity connection
+                    onNodeDrag={onNodeDrag} // @ add for proximity connection
                     onDrop={onDrop}
                     onDragOver={onDragOver}
-                    onEdgeUpdate={onEdgeUpdate} // Added new property in version 11 @sudarsana
-                    snapToGrid // Added SnapTOGrid rin version @sudarsana
-                    snapGrid={[54, 54]} // @sudarsana changed values 54 and 54
+                    onEdgeUpdate={onEdgeUpdate} // Added new property in version 11 @
+                    snapToGrid // Added SnapTOGrid rin version @
+                    snapGrid={[54, 54]} // @ changed values 54 and 54
                     style={{ position: "absolute" }}
                   >
                     <Background color="#aaa" gap={16} />

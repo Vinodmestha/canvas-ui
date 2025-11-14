@@ -9,6 +9,7 @@ export const staticProducts = [
     prefix: "CF",
     imageUrl: CF_new,
     path: "/config/proGen/filtration/cartridgeFilter",
+    modalKey: "cartridgeFilter_model", // adding in punching url
     category: "Ancillary (Inline)",
     regions: ["NAM", "EMEA"],
     frequencies: ["50Hz", "60Hz"],
@@ -25,6 +26,7 @@ export const staticProducts = [
     prefix: "STR",
     imageUrl: stripperImage,
     path: "/config/proGen/filtration/CIP",
+    modalKey: "standard_model", // adding in punching url
     category: "Ancillary (Inline)",
     regions: ["NAM"],
     frequencies: ["50Hz", "60Hz"],
@@ -40,6 +42,7 @@ export const staticProducts = [
     prefix: "Dose",
     imageUrl: Chemical_Dosing,
     path: "/config/proGen/ancillary/chemicalFeed",
+    modalKey: "chemicalType_model", // adding in punching url
     category: "Ancillary (Inline)",
     regions: ["NAM", "EMEA"],
     frequencies: ["50Hz", "60Hz"],
@@ -55,6 +58,7 @@ export const staticProducts = [
     prefix: "DPUMP",
     imageUrl: CF_new,
     path: "/config/proGen/ancillary/distributionPump",
+    modalKey: "distributionPump_model", // adding in punching url
     category: "Ancillary (Inline)",
     regions: ["NAM", "EMEA"],
     frequencies: ["50Hz", "60Hz"],
@@ -70,6 +74,7 @@ export const staticProducts = [
     prefix: "UV",
     imageUrl: uv,
     path: "/config/proGen/mobileEquipment/uVLight",
+    modalKey: "baseModel_family", // adding in punching url
     category: "Ancillary (Inline)",
     regions: ["NAM"],
     frequencies: ["60Hz"],
@@ -84,10 +89,13 @@ export const staticProducts = [
 // Helper function to transform products into UNITOP_CONFIG format
 export const transformToUnitopConfig = (products) => {
   return products.reduce((config, product) => {
+    console.log(product);
     config[product.unitopType] = {
       prefix: product.prefix,
       name: product.name,
       image: product.imageUrl,
+      path: product.path,
+      modalKey: product.modalKey,
       // storageKey: product.storageKey,
       // Store additional metadata
       category: product.category,
@@ -217,7 +225,7 @@ export const createNodesFromCPQProducts = (
     };
 
     localStorage.setItem(unitopStorageKey, JSON.stringify(unitopData));
-    localStorage.setItem(nodeId, shortName);
+    // localStorage.setItem(nodeId, shortName);
 
     console.log(` Created unitop: ${nodeId} -> ${shortName}`);
 
